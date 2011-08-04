@@ -39,6 +39,11 @@
 
 ipt="/sbin/iptables"
 
+# $ipt6
+# 	iptables binary for ipv6
+
+ipt6="/sbin/ip6tables"
+
 # $mpr
 # 	modprobe binary
 
@@ -125,24 +130,53 @@ ssh_time="60"
 ssh_log_prefix="SSH bruteforce attempt: "
 
 # $tcp_ports
-# 	open tcp ports array, the ports defined here will be open to internet
-# 	world. if you can open ssh port to world you must define here too.
-# 	if you don't have open ports you can comment this var
+# 	open tcp ports array, you can declare what ports you want open to a ip,
+# 	network or entire internet. if you can open ssh port you must define
+# 	here too. if you don't have open ports you can comment this var
 
-# Example:
-# SSH:22, SMTP:25, HTTP:80, SAMBA:137, SAMBA:139, HTTPS:443, SAMBA:445,
-# AFP:548, RSYNC:873, ITUNES:3689, DONKEY:7888, TORRENT: 51413
+# Examples:
+# "22" -> Open 22 port to entire internet
+# "22 192.168.0.1" -> Open 22 port to single IP
+# "25 192.168.0.0/24" -> Open 25 port to local network 192.168.0.0-255
+# "25 192.168.0.0/255.255.255.0" -> Same as above but in long subnet mask
 
-tcp_ports=( "22" "25" "80" "137" "139" "443" "445" "548" "873" "3689" "7888" "51413" )
+tcp_ports=(
+"22 192.168.0.0/24"
+"22 192.168.1.10"   # you can use the same port to open to other ip or net
+"80"
+"443"
+)
 
 # $udp_ports
 # 	open udp ports array, same as tcp ports but udp
 
-# Example:
-# DNS:53, NTP:123, SAMBA:137, SAMBA:138, SAMBA:445, SYSLOG:514, DONKEY:7892,
-# AVAHI:5353, TORRENT: 51413
+udp_ports=(
+"53 192.168.0.0/24"
+"123"
+)
 
-udp_ports=( "53" "123" "137" "138" "445" "514" "7892" "5353" "51413" )
+# $tcp6_ports
+# 	open ipv6 tcp ports array, same as tcp ports but in ipv6
+
+# Examples:
+# "22" -> Open 22 port to entire internet via IPv6
+# "25 fc00::1" -> Open 25 port to single ip
+# "80 fc00::/7" -> Open 80 port to local network fc00::/7
+
+tcp6_ports=(
+"22 fc00::/7"
+"25"
+"80"
+"443"
+)
+
+# $udp6_ports
+# 	open ipv6 udp ports array, same as udp ports but in ipv6
+
+udp6_ports=(
+"53 fc00::/7"
+"123"
+)
 
 # $icmp
 # 	incoming icmp accepted types, you can use numeric type or named type, if
@@ -235,23 +269,42 @@ start ()
 		# Module loading
 
 		echo -e "   ${green}*${restore} Loading kernel modules . . . "
-		$mpr -q -s x_tables && echo           "     x_tables"
-		$mpr -q -s ip_tables && echo          "     ip_tables"
-		$mpr -q -s nf_conntrack && echo       "     nf_conntrack"
-		$mpr -q -s nf_conntrack_ipv4 && echo  "     nf_conntrack_ipv4"
-		$mpr -q -s ipt_recent && echo         "     ipt_recent"
-		$mpr -q -s xt_state && echo           "     xt_state"
-		$mpr -q -s xt_tcpudp && echo          "     xt_tcpudp"
-		$mpr -q -s xt_limit && echo        "     xt_limit"
-		$mpr -q -s iptable_filter && echo     "     iptable_filter"
-		$mpr -q -s ipt_LOG && echo            "     ipt_LOG"
+		$mpr -q -s x_tables && echo            "     x_tables"
+		$mpr -q -s ip_tables && echo           "     ip_tables"
+		$mpr -q -s nf_conntrack && echo        "     nf_conntrack"
+		$mpr -q -s nf_conntrack_ipv4 && echo   "     nf_conntrack_ipv4"
+		$mpr -q -s ipt_recent && echo          "     ipt_recent"
+		$mpr -q -s xt_state && echo            "     xt_state"
+		$mpr -q -s xt_tcpudp && echo           "     xt_tcpudp"
+		$mpr -q -s xt_limit && echo            "     xt_limit"
+		$mpr -q -s iptable_filter && echo      "     iptable_filter"
+		$mpr -q -s ipt_LOG && echo             "     ipt_LOG"
+
+		# Module loading for ipv6 support
+
+		if [ ! -z "$tcp6_ports" ] || [ ! -z "$udp6_ports" ]; then
+			$mpr -q -s ip6_tables && echo        "     ip6_tables"
+			$mpr -q -s ip6table_filter && echo   "     ip6table_filter"
+			$mpr -q -s nf_defrag_ipv6 && echo    "     nf_defrag_ipv6"
+			$mpr -q -s nf_conntrack_ipv6 && echo "     nf_conntrack_ipv6"
+		fi
 	fi
 
 	# Set the rules
 
 	ebegin "Removing old firewall rules"
-	$ipt -F &> /dev/null
+	$ipt -Z &> /dev/null && \
+	$ipt -F &> /dev/null && \
+	$ipt -X &> /dev/null
 	eend $?
+
+	if [ ! -z "$tcp6_ports" ] || [ ! -z "$udp6_ports" ]; then
+		ebegin "Removing old IPv6 firewall rules"
+		$ipt6 -Z &> /dev/null && \
+		$ipt6 -F &> /dev/null && \
+		$ipt6 -X &> /dev/null
+		eend $?
+	fi
 
 	# Default firewall rules, drop all input, permit all from loopback and
 	# permit output
@@ -261,6 +314,14 @@ start ()
 	$ipt -P OUTPUT ACCEPT &> /dev/null && \
 	$ipt -A INPUT -i lo -j ACCEPT &> /dev/null
 	eend $?
+
+	if [ ! -z "$tcp6_ports" ] || [ ! -z "$udp6_ports" ]; then
+		ebegin "Setting default firewall rules"
+		$ipt6 -P INPUT DROP &> /dev/null && \
+		$ipt6 -P OUTPUT ACCEPT &> /dev/null && \
+		$ipt6 -A INPUT -i lo -j ACCEPT &> /dev/null
+		eend $?
+	fi
 
 	# Make our own chains
 
@@ -275,6 +336,13 @@ start ()
 	$ipt -N incoming-icmp &> /dev/null && \
 	$ipt -N icmp-rules &> /dev/null
 	eend $?
+
+	if [ ! -z "$tcp6_ports" ] || [ ! -z "$udp6_ports" ]; then
+		ebegin "Creating own IPv6 chains"
+		$ipt6 -N open-tcp6-ports &> /dev/null && \
+		$ipt6 -N open-udp6-ports &> /dev/null
+		eend $?
+	fi
 
 	# Open input for secure networks
 	# If there are networks defined then accept incoming connections from it
@@ -361,30 +429,86 @@ start ()
 		eend $?
 	fi
 
-	# Opening input ports to world
+	# Opening input ports
 	# If there are input ports defined then open it
 
 	# TCP Ports
 
-	if [ ! -z $tcp_ports ]; then
+	if [ ! -z "$tcp_ports" ]; then
 		echo  -e "   ${green}*${restore} Opening input TCP ports . . . "
-		for tcp_port in ${tcp_ports[@]}
+		for tcp_port_declaration in "${tcp_ports[@]}"
 		do
-			echo -ne "     TCP Port: ${tcp_port} . . . "
-			$ipt -A open-tcp-ports -p tcp --dport $tcp_port -i $int -j ACCEPT &> /dev/null
-			eend $?
+			tcp_port_array=($tcp_port_declaration)
+			if [ -z ${tcp_port_array[1]} ]; then
+				echo -ne "     TCP Port ${tcp_port_array[0]} to all Internet . . . "
+				$ipt -A open-tcp-ports -p tcp --dport ${tcp_port_array[0]} -i \
+				$int -j ACCEPT &> /dev/null
+				eend $?
+			else
+				echo -ne "     TCP Port ${tcp_port_array[0]} to ${tcp_port_array[1]} . . . "
+				$ipt -A open-tcp-ports -p tcp --dport ${tcp_port_array[0]} -s \
+				${tcp_port_array[1]} -i $int -j ACCEPT &> /dev/null
+				eend $?
+			fi
+		done
+	fi
+
+	if [ ! -z "$tcp6_ports" ]; then
+		echo  -e "   ${green}*${restore} Opening input IPv6 TCP ports . . . "
+		for tcp6_port_declaration in "${tcp6_ports[@]}"
+		do
+			tcp6_port_array=($tcp6_port_declaration)
+			if [ -z ${tcp6_port_array[1]} ]; then
+				echo -ne "     TCP Port ${tcp6_port_array[0]} to all Internet . . . "
+				$ipt6 -A open-tcp6-ports -p tcp --dport ${tcp6_port_array[0]} -i \
+				$int -j ACCEPT &> /dev/null
+				eend $?
+			else
+				echo -ne "     TCP Port ${tcp6_port_array[0]} to ${tcp6_port_array[1]} . . . "
+				$ipt6 -A open-tcp6-ports -p tcp --dport ${tcp6_port_array[0]} -s \
+				${tcp6_port_array[1]} -i $int -j ACCEPT &> /dev/null
+				eend $?
+			fi
 		done
 	fi
 
 	# UDP Ports
 
-	if [ ! -z $udp_ports ]; then
+	if [ ! -z "$udp_ports" ]; then
 		echo  -e "   ${green}*${restore} Opening input UDP ports . . . "
-		for udp_port in ${udp_ports[@]}
+		for udp_port_declaration in "${udp_ports[@]}"
 		do
-			echo -ne "     UDP Port: ${udp_port} . . . "
-			$ipt -A open-udp-ports -p udp --dport $udp_port -i $int -j ACCEPT &> /dev/null
-			eend $?
+			udp_port_array=($udp_port_declaration)
+			if [ -z ${udp_port_array[1]} ]; then
+				echo -ne "     UDP Port ${udp_port_array[0]} to all Internet . . . "
+				$ipt -A open-udp-ports -p udp --dport ${udp_port_array[0]} -i \
+				$int -j ACCEPT &> /dev/null
+				eend $?
+			else
+				echo -ne "     TCP Port ${udp_port_array[0]} to ${udp_port_array[1]} . . . "
+				$ipt -A open-udp-ports -p udp --dport ${udp_port_array[0]} -s \
+				${udp_port_array[1]} -i $int -j ACCEPT &> /dev/null
+				eend $?
+			fi
+		done
+	fi
+
+	if [ ! -z "$udp6_ports" ]; then
+		echo  -e "   ${green}*${restore} Opening input IPv6 UDP ports . . . "
+		for udp6_port_declaration in "${udp6_ports[@]}"
+		do
+			udp6_port_array=($udp6_port_declaration)
+			if [ -z ${udp6_port_array[1]} ]; then
+				echo -ne "     UDP Port ${udp6_port_array[0]} to all Internet . . . "
+				$ipt6 -A open-udp6-ports -p udp --dport ${udp6_port_array[0]} -i \
+				$int -j ACCEPT &> /dev/null
+				eend $?
+			else
+				echo -ne "     TCP Port ${udp6_port_array[0]} to ${udp6_port_array[1]} . . . "
+				$ipt6 -A open-udp6-ports -p udp --dport ${udp6_port_array[0]} -s \
+				${udp6_port_array[1]} -i $int -j ACCEPT &> /dev/null
+				eend $?
+			fi
 		done
 	fi
 
@@ -405,6 +529,25 @@ start ()
 		done
 	fi
 
+	# Permit responses for output connections
+
+	ebegin "Setting rules for established connections"
+	$ipt -A INPUT -i lo -m state --state ESTABLISHED,RELATED -j ACCEPT \
+	&> /dev/null && \
+	$ipt -A INPUT -i $int -m state --state ESTABLISHED,RELATED -j ACCEPT \
+	&> /dev/null
+	eend $?
+
+	if [ ! -z "$tcp6_ports" ] || [ ! -z "$udp6_ports" ]; then
+		ebegin "Setting rules for established IPv6 connections"
+		$ipt6 -A INPUT -p ipv6-icmp -j ACCEPT && \
+		$ipt6 -A INPUT -i lo -m state --state ESTABLISHED,RELATED -j ACCEPT \
+		&> /dev/null && \
+		$ipt6 -A INPUT -i $int -m state --state ESTABLISHED,RELATED -j ACCEPT \
+		&> /dev/null
+		eend $?
+	fi
+
 	# Applying own rules to input
 
 	ebegin "Applying own rules"
@@ -419,14 +562,12 @@ start ()
 	$ipt -A INPUT -j banned-ips &> /dev/null
 	eend $?
 
-	# Permit responses for output connections
-
-	ebegin "Setting rules for established connections"
-	$ipt -A INPUT -i lo -m state --state ESTABLISHED,RELATED -j ACCEPT \
-	&> /dev/null && \
-	$ipt -A INPUT -i $int -m state --state ESTABLISHED,RELATED -j ACCEPT \
-	&> /dev/null
-	eend $?
+	if [ ! -z "$tcp6_ports" ] || [ ! -z "$udp6_ports" ]; then
+		ebegin "Applying own IPv6 rules"
+		$ipt6 -A INPUT -j open-tcp6-ports &> /dev/null && \
+		$ipt6 -A INPUT -j open-udp6-ports &> /dev/null
+		eend $?
+	fi
 
 	echo -e " ${bold}*${restore} all done."
 }
@@ -444,22 +585,18 @@ stop ()
 	# Flush all rules
 
 	ebegin "Flushing firewall rules"
-	$ipt -F &> /dev/null
+	$ipt -Z &> /dev/null && \
+	$ipt -F &> /dev/null && \
+	$ipt -X &> /dev/null
 	eend $?
 
-	# Delete all created chains
-
-	ebegin "Deleting own chains"
-	$ipt -X secure-networks &> /dev/null && \
-	$ipt -X banned-networks &> /dev/null && \
-	$ipt -X secure-ips &> /dev/null && \
-	$ipt -X banned-ips &> /dev/null && \
-	$ipt -X ssh-rules &> /dev/null && \
-	$ipt -X open-tcp-ports &> /dev/null && \
-	$ipt -X open-udp-ports &> /dev/null && \
-	$ipt -X incoming-icmp &> /dev/null && \
-	$ipt -X icmp-rules &> /dev/null
-	eend $?
+	if [ ! -z "$tcp6_ports" ] || [ ! -z "$udp6_ports" ]; then
+		ebegin "Flushing IPv6 firewall rules"
+		$ipt6 -Z &> /dev/null && \
+		$ipt6 -F &> /dev/null
+		$ipt6 -X &> /dev/null
+		eend $?
+	fi
 
 	# Accept ALL
 
@@ -468,6 +605,13 @@ stop ()
 	$ipt -P OUTPUT ACCEPT &> /dev/null
 	eend $?
 
+	if [ ! -z "$tcp6_ports" ] || [ ! -z "$udp6_ports" ]; then
+		ebegin "Setting default IPv6 firewall rules"
+		$ipt6 -P INPUT ACCEPT &> /dev/null && \
+		$ipt6 -P OUTPUT ACCEPT &> /dev/null
+		eend $?
+	fi
+
 	# Test if is neccesary module unload
 
 	if $load_modules; then
@@ -475,16 +619,22 @@ stop ()
 		# Module unloading
 
 		echo -e "   ${green}*${restore} Unloading kernel modules . . . "
-		$mpr -r -q -s ipt_LOG && echo            "     ipt_LOG"
-		$mpr -r -q -s ipt_recent && echo         "     ipt_recent"
-		$mpr -r -q -s xt_limit && echo           "     xt_limit"
-		$mpr -r -q -s xt_state && echo           "     xt_state"
-		$mpr -r -q -s xt_tcpudp && echo          "     xt_tcpudp"
-		$mpr -r -q -s nf_conntrack_ipv4 && echo  "     nf_conntrack_ipv4"
-		$mpr -r -q -s nf_conntrack && echo       "     nf_conntrack"
-		$mpr -r -q -s iptable_filter && echo     "     iptable_filter"
-		$mpr -r -q -s ip_tables && echo          "     ip_tables"
-		$mpr -r -q -s x_tables && echo           "     x_tables"
+		$mpr -r -q -s ipt_LOG && echo             "     ipt_LOG"
+		$mpr -r -q -s ipt_recent && echo          "     ipt_recent"
+		$mpr -r -q -s xt_limit && echo            "     xt_limit"
+		$mpr -r -q -s xt_state && echo            "     xt_state"
+		$mpr -r -q -s xt_tcpudp && echo           "     xt_tcpudp"
+		$mpr -r -q -s nf_conntrack_ipv4 && echo   "     nf_conntrack_ipv4"
+		$mpr -r -q -s nf_conntrack && echo        "     nf_conntrack"
+		$mpr -r -q -s iptable_filter && echo      "     iptable_filter"
+		$mpr -r -q -s ip_tables && echo           "     ip_tables"
+		$mpr -r -q -s x_tables && echo            "     x_tables"
+		if [ ! -z "$tcp6_ports" ] || [ ! -z "$udp6_ports" ]; then
+			$mpr -r -q -s nf_conntrack_ipv6 && echo "     nf_conntrack_ipv6"
+			$mpr -r -q -s nf_defrag_ipv6 && echo    "     nf_defrag_ipv6"
+			$mpr -r -q -s ip6table_filter && echo   "     ip6table_filter"
+			$mpr -r -q -s ip6_tables && echo        "     ip6_tables"
+		fi
 	fi
 
 	echo -e " ${bold}*${restore} all done."
@@ -501,7 +651,11 @@ status ()
 
 	# List iptables status
 
-	$ipt -L
+	$ipt -L -v -n --line-numbers
+
+	if [ ! -z "$tcp6_ports" ] || [ ! -z "$udp6_ports" ]; then
+		$ipt6 -L -v -n --line-numbers
+	fi
 }
 
 # --------------
