@@ -1,0 +1,547 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          firewall
+# Required-Start:    $local_fs $remote_fs $network
+# Required-Stop:     $local_fs $remote_fs $network
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Load, unload or show firewall rules
+### END INIT INFO
+
+# =============================================
+# Coffee: Connectical Firewalls for Enterprises
+# =============================================
+#
+# Author:    Óscar García Amor <ogarcia@connectical.net>
+# Version:   A0
+# Web:       http://code.connectical.net/coffee
+# Copyright: ©2011 Connectical Labs. Distributed under terms of the MIT license.
+#
+# --------
+# Jamaican
+# --------
+#
+# This version of Coffe is designed as standalone firewall script for use
+# with any Linux distribution. This is a "hard" implementation of black
+# version of coffee (deprecated) as more restrictive firewall.
+#
+
+# -----------
+# Definitions
+# -----------
+#
+# Here are all script variables, you can chage it in accordance of your
+# machine.
+#
+
+# $ipt
+# 	iptables binary
+
+ipt="/sbin/iptables"
+
+# $mpr
+# 	modprobe binary
+
+mpr="/sbin/modprobe"
+
+# $load_modules
+# 	true if you need module loading, if you have iptables support into
+# 	kernel then false
+
+load_modules=true
+
+# $int
+# 	interface name
+
+int="eth0"
+
+# $secure_networks
+# 	secure networks array, if you don't have secure netwoks you can comment
+# 	this var
+
+#secure_networks=( "192.168.0.0/24" "192.168.1.0/24" )
+
+# $banned_networks
+# 	banned networks array, if you don't have enemies you can comment this
+# 	var
+
+#banned_networks=( "212.51.33.0/24" "213.60.0.0/22")
+
+# $banned_networks_log_prefix
+# 	log prefix for connection attempt from a banned network
+# 	Note: We recommend leave a whitespace at end of string
+
+banned_networks_log_prefix="Banned network intrusion: "
+
+# $secure_ips
+# 	secure ip's array, if you dont have secure ip's you can comment this
+# 	var
+
+#secure_ips=( "10.20.30.40" "69.69.69.69" )
+
+# $banned_ips
+# 	banned ip's array, if your boss is perfectly capable for work with
+# 	computers you can comment this var
+
+#banned_ips=( "212.51.33.73" "212.51.33.106" "192.168.1.10" )
+
+# $banned_ips_log_prefix
+#   log prefix for connection attempt from a banned ip
+#   Note: We recommend leave a whitespace at end of string
+
+banned_ips_log_prefix="Banned IP intrusion: "
+
+# $ssh
+# 	ssh port definition, the ssh have a special processing, if you leave the
+# 	var in blank (default) the port will not be processed
+# 	Notes: This var works in conjunction with $ssh_tries and $ssh_time, you
+# 	can open ssh port and not define here, in this case the port doesn't
+# 	have any special treatment. If you define here the ssh port and doesn't
+# 	open it (and you not have any secure network or ip), it doesn't work.
+# 	Warning: This var does't open ssh port, only defines it for a special
+# 	process.
+
+ssh="22"
+
+# $ssh_tries
+# 	if you define ssh port, you can define here the number of connections
+# 	that you permit form any ip before that the port closes for this ip for
+# 	time defined by $ssh_time
+# 	Note: The tries excess are logged as $ssh_log_prefix
+
+ssh_tries="3"
+
+# $ssh_time
+# 	if you define ssh port, you can define here the time (in seconds) that
+# 	ssh port are closed for any ip that excess the number of connections
+# 	defined by $ssh_tries
+
+ssh_time="60"
+
+# $ssh_log_prefix
+#   log prefix for connection attempt that excess $ssh_tries
+#   Note: We recommend leave a whitespace at end of string
+
+ssh_log_prefix="SSH bruteforce attempt: "
+
+# $tcp_ports
+# 	open tcp ports array, the ports defined here will be open to internet
+# 	world. if you can open ssh port to world you must define here too.
+# 	if you don't have open ports you can comment this var
+
+# Example:
+# SSH:22, SMTP:25, HTTP:80, SAMBA:137, SAMBA:139, HTTPS:443, SAMBA:445,
+# AFP:548, RSYNC:873, ITUNES:3689, DONKEY:7888, TORRENT: 51413
+
+tcp_ports=( "22" "25" "80" "137" "139" "443" "445" "548" "873" "3689" "7888" "51413" )
+
+# $udp_ports
+# 	open udp ports array, same as tcp ports but udp
+
+# Example:
+# DNS:53, NTP:123, SAMBA:137, SAMBA:138, SAMBA:445, SYSLOG:514, DONKEY:7892,
+# AVAHI:5353, TORRENT: 51413
+
+udp_ports=( "53" "123" "137" "138" "445" "514" "7892" "5353" "51413" )
+
+# $icmp
+# 	incoming icmp accepted types, you can use numeric type or named type, if
+# 	you can permit any incoming icmp you can use special word "any"
+
+icmp=( "echo-request" "timestamp-request" )
+
+# $icmp_close
+#   this var works in conjunction with $icmp_average_limit, $icmp_time and
+#   $icmp_requests for close icmp responses to any that excess the number of
+#   requests, defined by $icmp_requests, a number of times, defined by
+#   $icmp_average_limit, in a time period, defined by $icmp_time
+#   if defined as true (default) then it's work
+#   Warning: You must define icmp accepted types for it's work
+
+icmp_close=true
+
+# $icmp_average_limit
+#   maximun number of matches per time period
+
+icmp_average_limit="1"
+
+# $icmp_requests
+#   number of requests to constitute one match for $icmp_average_limit
+
+icmp_requests="10"
+
+# $icmp_time
+#   time period, the accepted values are: second/minute/hour/day
+
+icmp_time="minute"
+
+# color definitions
+# 	we loves color, the life is color (comment if you live in a black and
+# 	white world)
+
+red="[1;31m"
+green="[1;32m"
+bold="[1m"
+restore="[0m"
+
+# --------------------
+# Functions Definition
+# --------------------
+
+# Function: ebegin
+# Purpose:  prints the input with color
+# Input:    a string
+# Output:   a color string
+# Return:   always *true*
+
+ebegin ()
+{
+	echo -ne "   ${green}*${restore} $@ . . ."
+}
+
+# Function: eend
+# Purpose:  print Ok or Fail depends the input
+# Input:    cero or one number greater than cero
+# Output:   prints Ok if input is cero, Fail if input is greater than cero
+# Return:   always *true*
+
+eend ()
+{
+	if [ $1 -eq 0 ]; then
+		echo -e "	[ ${green}Ok${restore} ] "
+	else
+		echo -e "	[ ${red}Fail${restore} ] "
+	fi
+}
+
+
+# Function: start
+# Purpose:  set iptables firewall rules
+# Input:    **None**
+# Output:   Prints in ``stdout`` the status of firewall load
+# Return:   *true*, unless any error occurs
+
+start ()
+{
+
+	# Start the dance
+
+	echo -e " ${bold}*${restore} Starting firewall . . . "
+
+	# Test if is neccesary module load
+
+	if $load_modules; then
+
+		# Module loading
+
+		echo -e "   ${green}*${restore} Loading kernel modules . . . "
+		$mpr -q -s x_tables && echo           "     x_tables"
+		$mpr -q -s ip_tables && echo          "     ip_tables"
+		$mpr -q -s nf_conntrack && echo       "     nf_conntrack"
+		$mpr -q -s nf_conntrack_ipv4 && echo  "     nf_conntrack_ipv4"
+		$mpr -q -s ipt_recent && echo         "     ipt_recent"
+		$mpr -q -s xt_state && echo           "     xt_state"
+		$mpr -q -s xt_tcpudp && echo          "     xt_tcpudp"
+		$mpr -q -s xt_limit && echo        "     xt_limit"
+		$mpr -q -s iptable_filter && echo     "     iptable_filter"
+		$mpr -q -s ipt_LOG && echo            "     ipt_LOG"
+	fi
+
+	# Set the rules
+
+	ebegin "Removing old firewall rules"
+	$ipt -F &> /dev/null
+	eend $?
+
+	# Default firewall rules, drop all input, permit all from loopback and
+	# permit output
+
+	ebegin "Setting default firewall rules"
+	$ipt -P INPUT DROP &> /dev/null && \
+	$ipt -P OUTPUT ACCEPT &> /dev/null && \
+	$ipt -A INPUT -i lo -j ACCEPT &> /dev/null
+	eend $?
+
+	# Make our own chains
+
+	ebegin "Creating own chains"
+	$ipt -N secure-networks &> /dev/null && \
+	$ipt -N banned-networks &> /dev/null && \
+	$ipt -N secure-ips &> /dev/null && \
+	$ipt -N banned-ips &> /dev/null && \
+	$ipt -N ssh-rules &> /dev/null && \
+	$ipt -N open-tcp-ports &> /dev/null && \
+	$ipt -N open-udp-ports &> /dev/null && \
+	$ipt -N incoming-icmp &> /dev/null && \
+	$ipt -N icmp-rules &> /dev/null
+	eend $?
+
+	# Open input for secure networks
+	# If there are networks defined then accept incoming connections from it
+
+	if [ ! -z $secure_networks ]; then
+		echo -e "   ${green}*${restore} Opening input for secure networks . . . "
+		for network in ${secure_networks[@]}
+		do
+			echo -ne "     Network: ${network} . . . "
+			$ipt -A secure-networks -i $int -s $network -j ACCEPT &> /dev/null
+			eend $?
+		done
+	fi
+
+	# Close input for banned networks
+	# If there are networks defined then close all incoming connections from
+	# it
+
+	if [ ! -z $banned_networks ]; then
+		if [ -z "${banned_networks_log_prefix}" ]; then
+			echo -e "   ${red}*${restore} WARNING: The var \$banned_networks_log_prefix is not defined, using default definition"
+			banned_networks_log_prefix="Banned network intrusion: "
+		fi
+		echo -e "   ${green}*${restore} Dropping input for banned networks . . . "
+		for network in ${banned_networks[@]}
+		do
+			echo -ne "     Network: ${network} . . . "
+			$ipt -A banned-networks -i $int -s $network -j LOG \
+			--log-prefix "${banned_networks_log_prefix}" &> /dev/null && \
+			$ipt -A banned-networks -i $int -s $network -j DROP &> /dev/null
+			eend $?
+		done
+	fi
+
+	# Open input for secure ip's
+	# If there are secure ip's defined then accept incoming connections from
+	# it
+
+	if [ ! -z $secure_ips ]; then
+		echo -e "   ${green}*${restore} Opening input for secure ip's . . . "
+		for ip in ${secure_ips[@]}
+		do
+			echo -ne "     IP: ${ip} . . . "
+			$ipt -A secure-ips -i $int -s $ip -j ACCEPT &> /dev/null
+			eend $?
+		done
+	fi
+
+	# Close input for banned ips
+	# If there are ips defined then close all incoming connections from it
+
+	if [ ! -z $banned_ips ]; then
+		if [ -z "${banned_ips_log_prefix}" ]; then
+			echo -e "   ${red}*${restore} WARNING: The var \$banned_ips_log_prefix is not defined, using default definition"
+			banned_ips_log_prefix="Banned IP intrusion: "
+		fi
+		echo -e "   ${green}*${restore} Dropping input for banned ip's . . . "
+		for ip in ${banned_ips[@]}
+		do
+			echo -ne "     IP: ${ip} . . . "
+			$ipt -A banned-ips -i $int -s $ip -j LOG \
+			--log-prefix "${banned_ips_log_prefix}" &> /dev/null && \
+			$ipt -A banned-ips -i $int -s $ip -j DROP &> /dev/null
+			eend $?
+		done
+	fi
+
+	# Setting special treatment to ssh if defined
+
+	if [ ! -z $ssh ]; then
+		if [ -z "${ssh_log_prefix}" ]; then
+			echo -e "   ${red}*${restore} WARNING: The var \$ssh_log_prefix is not defined, using default definition"
+			ssh_log_prefix="SSH bruteforce attempt: "
+		fi
+		ebegin "Setting special rules for ssh"
+		$ipt -A ssh-rules -p tcp --dport $ssh -i $int -m state --state NEW -m \
+		recent --name SSH --update --seconds $ssh_time --hitcount $ssh_tries -j LOG \
+		--log-prefix "${ssh_log_prefix}" &> /dev/null && \
+		$ipt -A ssh-rules -p tcp --dport $ssh -i $int -m state --state NEW -m \
+		recent --name SSH --update --seconds $ssh_time --hitcount $ssh_tries -j DROP \
+		&> /dev/null && \
+		$ipt -A ssh-rules -p tcp --dport $ssh -i $int -m state --state NEW -m \
+		recent --name SSH --set &> /dev/null
+		eend $?
+	fi
+
+	# Opening input ports to world
+	# If there are input ports defined then open it
+
+	# TCP Ports
+
+	if [ ! -z $tcp_ports ]; then
+		echo  -e "   ${green}*${restore} Opening input TCP ports . . . "
+		for tcp_port in ${tcp_ports[@]}
+		do
+			echo -ne "     TCP Port: ${tcp_port} . . . "
+			$ipt -A open-tcp-ports -p tcp --dport $tcp_port -i $int -j ACCEPT &> /dev/null
+			eend $?
+		done
+	fi
+
+	# UDP Ports
+
+	if [ ! -z $udp_ports ]; then
+		echo  -e "   ${green}*${restore} Opening input UDP ports . . . "
+		for udp_port in ${udp_ports[@]}
+		do
+			echo -ne "     UDP Port: ${udp_port} . . . "
+			$ipt -A open-udp-ports -p udp --dport $udp_port -i $int -j ACCEPT &> /dev/null
+			eend $?
+		done
+	fi
+
+	# Setting accepted incoming icmp types
+
+	if [ ! -z $icmp ]; then
+		echo  -e "   ${green}*${restore} Setting ICMP rules . . . "
+		if $icmp_close; then
+			echo -ne "     Setting values for close ICMP responses: ${icmp_requests} request(s) ${icmp_average_limit} time(s) per ${icmp_time} . . . "
+			icmp_limit_command="-m limit --limit $icmp_average_limit/$icmp_time --limit-burst $icmp_requests"
+			eend $?
+		fi
+		for icmp_type in ${icmp[@]}
+		do
+			echo -ne "     ICMP: ${icmp_type} . . . "
+			$ipt -A incoming-icmp -p icmp --icmp-type $icmp_type -i $int $icmp_limit_command -j ACCEPT &> /dev/null
+			eend $?
+		done
+	fi
+
+	# Applying own rules to input
+
+	ebegin "Applying own rules"
+	$ipt -A INPUT -j secure-networks &> /dev/null && \
+	$ipt -A INPUT -j secure-ips &> /dev/null && \
+	$ipt -A INPUT -j ssh-rules &> /dev/null && \
+	$ipt -A INPUT -j open-tcp-ports &> /dev/null && \
+	$ipt -A INPUT -j open-udp-ports &> /dev/null && \
+	$ipt -A INPUT -j incoming-icmp &> /dev/null && \
+	$ipt -A INPUT -j icmp-rules &> /dev/null && \
+	$ipt -A INPUT -j banned-networks &> /dev/null && \
+	$ipt -A INPUT -j banned-ips &> /dev/null
+	eend $?
+
+	# Permit responses for output connections
+
+	ebegin "Setting rules for established connections"
+	$ipt -A INPUT -i lo -m state --state ESTABLISHED,RELATED -j ACCEPT \
+	&> /dev/null && \
+	$ipt -A INPUT -i $int -m state --state ESTABLISHED,RELATED -j ACCEPT \
+	&> /dev/null
+	eend $?
+
+	echo -e " ${bold}*${restore} all done."
+}
+
+# Function: stop
+# Purpose:  unload iptables firewall rules
+# Input:    **None**
+# Output:   Prints in ``stdout`` the status of firewall unload
+# Return:   *true*, unless any error occurs
+
+stop ()
+{
+	echo -e " ${bold}*${restore} Stoping firewall . . . "
+
+	# Flush all rules
+
+	ebegin "Flushing firewall rules"
+	$ipt -F &> /dev/null
+	eend $?
+
+	# Delete all created chains
+
+	ebegin "Deleting own chains"
+	$ipt -X secure-networks &> /dev/null && \
+	$ipt -X banned-networks &> /dev/null && \
+	$ipt -X secure-ips &> /dev/null && \
+	$ipt -X banned-ips &> /dev/null && \
+	$ipt -X ssh-rules &> /dev/null && \
+	$ipt -X open-tcp-ports &> /dev/null && \
+	$ipt -X open-udp-ports &> /dev/null && \
+	$ipt -X incoming-icmp &> /dev/null && \
+	$ipt -X icmp-rules &> /dev/null
+	eend $?
+
+	# Accept ALL
+
+	ebegin "Setting default firewall rules"
+	$ipt -P INPUT ACCEPT &> /dev/null && \
+	$ipt -P OUTPUT ACCEPT &> /dev/null
+	eend $?
+
+	# Test if is neccesary module unload
+
+	if $load_modules; then
+
+		# Module unloading
+
+		echo -e "   ${green}*${restore} Unloading kernel modules . . . "
+		$mpr -r -q -s ipt_LOG && echo            "     ipt_LOG"
+		$mpr -r -q -s ipt_recent && echo         "     ipt_recent"
+		$mpr -r -q -s xt_limit && echo           "     xt_limit"
+		$mpr -r -q -s xt_state && echo           "     xt_state"
+		$mpr -r -q -s xt_tcpudp && echo          "     xt_tcpudp"
+		$mpr -r -q -s nf_conntrack_ipv4 && echo  "     nf_conntrack_ipv4"
+		$mpr -r -q -s nf_conntrack && echo       "     nf_conntrack"
+		$mpr -r -q -s iptable_filter && echo     "     iptable_filter"
+		$mpr -r -q -s ip_tables && echo          "     ip_tables"
+		$mpr -r -q -s x_tables && echo           "     x_tables"
+	fi
+
+	echo -e " ${bold}*${restore} all done."
+}
+
+# Function: status
+# Purpose:  show iptables status
+# Input:    **None**
+# Output:   Prints in ``stdout`` the status of iptables
+# Return:   *true*, unless any error occurs
+
+status ()
+{
+
+	# List iptables status
+
+	$ipt -L
+}
+
+# --------------
+# Startup Script
+# --------------
+
+case "$1" in
+	start)
+		start
+		RETVAL=$?
+		;;
+	stop)
+		stop
+		RETVAL=$?
+		;;
+	restart)
+
+		# Stop all
+
+		stop
+
+		# Wait one second
+
+		sleep 1
+
+		# Start all
+
+		start
+		RETVAL=$?
+		;;
+	status)
+		status
+		RETVAL=$?
+		;;
+	*)
+		echo $"Usage: $0 {start|stop|restart|status}"
+		exit 1
+		;;
+esac
+
+exit $RETVAL
+
+# vim:ft=sh:fenc=utf-8:ts=2
