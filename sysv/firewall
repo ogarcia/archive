@@ -66,11 +66,21 @@ int="eth0"
 
 #secure_networks=( "192.168.0.0/24" "192.168.1.0/24" )
 
+# $secure_ipv6_networks
+# 	secure ipv6 networks array
+
+#secure_ipv6_networks=( "fe80::/10" "ff00::/8" )
+
 # $banned_networks
 # 	banned networks array, if you don't have enemies you can comment this
 # 	var
 
 #banned_networks=( "212.51.33.0/24" "213.60.0.0/22")
+
+# $banned_ipv6_networks
+# 	banned ipv6 networks array
+
+#banned_ipv6_networks=( "2001:470:dcd9:1::1/64" "2001:470:dcd8:1::1/64" )
 
 # $banned_networks_log_prefix
 # 	log prefix for connection attempt from a banned network
@@ -84,11 +94,21 @@ banned_networks_log_prefix="Banned network intrusion: "
 
 #secure_ips=( "10.20.30.40" "69.69.69.69" )
 
+# $secure_ipv6_ips
+# 	secure ipv6 ip's array
+
+#secure_ipv6_ips=( "fe80::1" "fe80::2" )
+
 # $banned_ips
 # 	banned ip's array, if your boss is perfectly capable for work with
 # 	computers you can comment this var
 
 #banned_ips=( "212.51.33.73" "212.51.33.106" "192.168.1.10" )
+
+# $banned_ipv6_ips
+# 	banned ipv6 ip's array
+
+#banned_ipv6_ips=( "2001:470:dcd9:1::4" "2001:470:dcd9:1::8" )
 
 # $banned_ips_log_prefix
 #   log prefix for connection attempt from a banned ip
@@ -98,7 +118,7 @@ banned_ips_log_prefix="Banned IP intrusion: "
 
 # $ssh
 # 	ssh port definition, the ssh have a special processing, if you leave the
-# 	var in blank (default) the port will not be processed
+# 	var in blank the port will not be processed
 # 	Notes: This var works in conjunction with $ssh_tries and $ssh_time, you
 # 	can open ssh port and not define here, in this case the port doesn't
 # 	have any special treatment. If you define here the ssh port and doesn't
@@ -141,6 +161,7 @@ ssh_log_prefix="SSH bruteforce attempt: "
 # "25 192.168.0.0/255.255.255.0" -> Same as above but in long subnet mask
 
 tcp_ports=(
+"22"
 "22 192.168.0.0/24"
 "22 192.168.1.10"   # you can use the same port to open to other ip or net
 "80"
@@ -181,6 +202,7 @@ udp6_ports=(
 # $icmp
 # 	incoming icmp accepted types, you can use numeric type or named type, if
 # 	you can permit any incoming icmp you can use special word "any"
+# 	Note: only implemented for ipv4, ipv6 need icmp packets to work
 
 icmp=( "echo-request" "timestamp-request" )
 
@@ -271,85 +293,114 @@ start ()
 		echo -e "   ${green}*${restore} Loading kernel modules . . . "
 		$mpr -q -s x_tables && echo            "     x_tables"
 		$mpr -q -s ip_tables && echo           "     ip_tables"
-		$mpr -q -s nf_conntrack && echo        "     nf_conntrack"
-		$mpr -q -s nf_conntrack_ipv4 && echo   "     nf_conntrack_ipv4"
-		$mpr -q -s ipt_recent && echo          "     ipt_recent"
-		$mpr -q -s xt_state && echo            "     xt_state"
-		$mpr -q -s xt_tcpudp && echo           "     xt_tcpudp"
-		$mpr -q -s xt_limit && echo            "     xt_limit"
 		$mpr -q -s iptable_filter && echo      "     iptable_filter"
-		$mpr -q -s ipt_LOG && echo             "     ipt_LOG"
+		$mpr -q -s nf_conntrack && echo        "     nf_conntrack"
+		$mpr -q -s xt_state && echo            "     xt_state"
+		$mpr -q -s nf_defrag_ipv4 && echo      "     nf_defrag_ipv4"
+		$mpr -q -s nf_conntrack_ipv4 && echo   "     nf_conntrack_ipv4"
+
+		# Load module for manage ports if open ports are declared
+
+		if [ -n "$tcp_ports" ] || [ -n "$udp_ports" ] || [ -n "$ssh" ]; then
+			$mpr -q -s xt_tcpudp && echo         "     xt_tcpudp"
+		fi
+
+		# Load module for ssh have special processing
+
+		if [ -n "$ssh" ]; then
+			$mpr -q -s ipt_recent && echo        "     ipt_recent"
+		fi
+
+		# Load module for close ICMP responses
+
+		$icmp_close && \
+			$mpr -q -s xt_limit && echo          "     xt_limit"
+
+		# Load module for log
+
+		if [ -n "$banned_networks" ] || \
+		   [ -n "$banned_ips" ] || \
+		   [ -n "$ssh" ]; then
+			$mpr -q -s ipt_LOG && echo           "     ipt_LOG"
+		fi
 
 		# Module loading for ipv6 support
 
-		if [ ! -z "$tcp6_ports" ] || [ ! -z "$udp6_ports" ]; then
-			$mpr -q -s ip6_tables && echo        "     ip6_tables"
-			$mpr -q -s ip6table_filter && echo   "     ip6table_filter"
-			$mpr -q -s nf_defrag_ipv6 && echo    "     nf_defrag_ipv6"
-			$mpr -q -s nf_conntrack_ipv6 && echo "     nf_conntrack_ipv6"
+		$mpr -q -s ip6_tables && echo        "     ip6_tables"
+		$mpr -q -s ip6table_filter && echo   "     ip6table_filter"
+		$mpr -q -s nf_defrag_ipv6 && echo    "     nf_defrag_ipv6"
+		$mpr -q -s nf_conntrack_ipv6 && echo "     nf_conntrack_ipv6"
+
+		# Load module for log IPv6
+
+		if [ ! -z "$banned_ipv6_networks" ] || \
+		   [ ! -z "$banned_ipv6_ips" ] || \
+		   [ ! -z "$ssh" ]; then
+			$mpr -q -s ip6t_LOG && echo        "     ip6t_LOG"
 		fi
+
 	fi
 
 	# Set the rules
 
-	ebegin "Removing old firewall rules"
+	ebegin "Removing old IPv4 firewall rules"
 	$ipt -Z &> /dev/null && \
 	$ipt -F &> /dev/null && \
 	$ipt -X &> /dev/null
 	eend $?
 
-	if [ ! -z "$tcp6_ports" ] || [ ! -z "$udp6_ports" ]; then
-		ebegin "Removing old IPv6 firewall rules"
-		$ipt6 -Z &> /dev/null && \
-		$ipt6 -F &> /dev/null && \
-		$ipt6 -X &> /dev/null
-		eend $?
-	fi
+	ebegin "Removing old IPv6 firewall rules"
+	$ipt6 -Z &> /dev/null && \
+	$ipt6 -F &> /dev/null && \
+	$ipt6 -X &> /dev/null
+	eend $?
 
 	# Default firewall rules, drop all input, permit all from loopback and
 	# permit output
 
-	ebegin "Setting default firewall rules"
+	ebegin "Setting IPv4 default firewall rules"
 	$ipt -P INPUT DROP &> /dev/null && \
 	$ipt -P OUTPUT ACCEPT &> /dev/null && \
 	$ipt -A INPUT -i lo -j ACCEPT &> /dev/null
 	eend $?
 
-	if [ ! -z "$tcp6_ports" ] || [ ! -z "$udp6_ports" ]; then
-		ebegin "Setting default firewall rules"
-		$ipt6 -P INPUT DROP &> /dev/null && \
-		$ipt6 -P OUTPUT ACCEPT &> /dev/null && \
-		$ipt6 -A INPUT -i lo -j ACCEPT &> /dev/null
-		eend $?
-	fi
+	ebegin "Setting IPv6 default firewall rules"
+	$ipt6 -P INPUT DROP &> /dev/null && \
+	$ipt6 -P OUTPUT ACCEPT &> /dev/null && \
+	$ipt6 -A INPUT -i lo -j ACCEPT &> /dev/null
+	eend $?
 
 	# Make our own chains
 
-	ebegin "Creating own chains"
-	$ipt -N secure-networks &> /dev/null && \
-	$ipt -N banned-networks &> /dev/null && \
-	$ipt -N secure-ips &> /dev/null && \
-	$ipt -N banned-ips &> /dev/null && \
-	$ipt -N ssh-rules &> /dev/null && \
-	$ipt -N open-tcp-ports &> /dev/null && \
-	$ipt -N open-udp-ports &> /dev/null && \
-	$ipt -N incoming-icmp &> /dev/null && \
-	$ipt -N icmp-rules &> /dev/null
-	eend $?
+	ebegin "Creating own IPv4 chains"
+	[ -n "$secure_networks" ] && { $ipt -N secure-networks &> /dev/null || ok=false; }
+	[ -n "$banned_networks" ] && { $ipt -N banned-networks &> /dev/null || ok=false; }
+	[ -n "$secure_ips" ] && { $ipt -N secure-ips &> /dev/null || ok=false; }
+	[ -n "$banned_ips" ] && { $ipt -N banned-ips &> /dev/null || ok=false; }
+	[ -n "$ssh" ] && { $ipt -N ssh-rules &> /dev/null || ok=false; }
+	[ -n "$tcp_ports" ] && { $ipt -N open-tcp-ports &> /dev/null || ok=false; }
+	[ -n "$udp_ports" ] && { $ipt -N open-udp-ports &> /dev/null || ok=false; }
+	[ -n "$icmp" ] && { $ipt -N incoming-icmp &> /dev/null || ok=false; }
+	$ok
+	eend $? && unset $ok
 
-	if [ ! -z "$tcp6_ports" ] || [ ! -z "$udp6_ports" ]; then
-		ebegin "Creating own IPv6 chains"
-		$ipt6 -N open-tcp6-ports &> /dev/null && \
-		$ipt6 -N open-udp6-ports &> /dev/null
-		eend $?
-	fi
+	ebegin "Creating own IPv6 chains"
+	[ -n "$secure_ipv6_networks" ] && { $ipt6 -N secure-ipv6-networks &> /dev/null || ok=false; }
+	[ -n "$banned_ipv6_networks" ] && { $ipt6 -N banned-ipv6-networks &> /dev/null || ok=false; }
+	[ -n "$secure_ipv6_ips" ] && { $ipt6 -N secure-ipv6-ips &> /dev/null || ok=false; }
+	[ -n "$banned_ipv6_ips" ] && { $ipt6 -N banned-ipv6-ips &> /dev/null || ok=false; }
+	[ -n "$ssh" ] && { $ipt6 -N ssh-ipv6-rules &> /dev/null || ok=false; }
+	[ -n "$tcp6_ports" ] && { $ipt6 -N open-tcp6-ports &> /dev/null || ok=false; }
+	[ -n "$udp6_ports" ] && { $ipt6 -N open-udp6-ports &> /dev/null || ok=false; }
+	$ok
+	eend $? && unset $ok
 
 	# Open input for secure networks
 	# If there are networks defined then accept incoming connections from it
 
-	if [ ! -z $secure_networks ]; then
-		echo -e "   ${green}*${restore} Opening input for secure networks . . . "
-		for network in ${secure_networks[@]}
+	if [ -n "$secure_networks" ]; then
+		echo -e "   ${green}*${restore} Opening input for secure IPv6 networks . . . "
+		for network in "${secure_networks[@]}"
 		do
 			echo -ne "     Network: ${network} . . . "
 			$ipt -A secure-networks -i $int -s $network -j ACCEPT &> /dev/null
@@ -357,17 +408,26 @@ start ()
 		done
 	fi
 
-	# Close input for banned networks
-	# If there are networks defined then close all incoming connections from
-	# it
+	if [ -n "$secure_ipv6_networks" ]; then
+		echo -e "   ${green}*${restore} Opening input for secure IPv6 networks . . . "
+		for network in "${secure_ipv6_networks[@]}"
+		do
+			echo -ne "     Network: ${network} . . . "
+			$ipt6 -A secure-ipv6-networks -i $int -s $network -j ACCEPT &> /dev/null
+			eend $?
+		done
+	fi
 
-	if [ ! -z $banned_networks ]; then
+	# Close input for banned networks
+	# If there are networks defined then close all incoming connections from it
+
+	if [ -n "$banned_networks" ]; then
 		if [ -z "${banned_networks_log_prefix}" ]; then
 			echo -e "   ${red}*${restore} WARNING: The var \$banned_networks_log_prefix is not defined, using default definition"
 			banned_networks_log_prefix="Banned network intrusion: "
 		fi
-		echo -e "   ${green}*${restore} Dropping input for banned networks . . . "
-		for network in ${banned_networks[@]}
+		echo -e "   ${green}*${restore} Dropping input for banned IPv4 networks . . . "
+		for network in "${banned_networks[@]}"
 		do
 			echo -ne "     Network: ${network} . . . "
 			$ipt -A banned-networks -i $int -s $network -j LOG \
@@ -377,13 +437,29 @@ start ()
 		done
 	fi
 
+	if [ -n "$banned_ipv6_networks" ]; then
+		if [ -z "${banned_networks_log_prefix}" ]; then
+			echo -e "   ${red}*${restore} WARNING: The var \$banned_networks_log_prefix is not defined, using default definition"
+			banned_networks_log_prefix="Banned network intrusion: "
+		fi
+		echo -e "   ${green}*${restore} Dropping input for banned IPv6 networks . . . "
+		for network in "${banned_ipv6_networks[@]}"
+		do
+			echo -ne "     Network: ${network} . . . "
+			$ipt6 -A banned-ipv6-networks -i $int -s $network -j LOG \
+			--log-prefix "${banned_networks_log_prefix}" &> /dev/null && \
+			$ipt6 -A banned-ipv6-networks -i $int -s $network -j DROP &> /dev/null
+			eend $?
+		done
+	fi
+
 	# Open input for secure ip's
 	# If there are secure ip's defined then accept incoming connections from
 	# it
 
-	if [ ! -z $secure_ips ]; then
-		echo -e "   ${green}*${restore} Opening input for secure ip's . . . "
-		for ip in ${secure_ips[@]}
+	if [ -n "$secure_ips" ]; then
+		echo -e "   ${green}*${restore} Opening input for secure IPv4 ip's . . . "
+		for ip in "${secure_ips[@]}"
 		do
 			echo -ne "     IP: ${ip} . . . "
 			$ipt -A secure-ips -i $int -s $ip -j ACCEPT &> /dev/null
@@ -391,21 +467,47 @@ start ()
 		done
 	fi
 
+	if [ -n "$secure_ipv6_ips" ]; then
+		echo -e "   ${green}*${restore} Opening input for secure IPv6 ip's . . . "
+		for ip in "${secure_ipv6_ips[@]}"
+		do
+			echo -ne "     IP: ${ip} . . . "
+			$ipt6 -A secure-ipv6-ips -i $int -s $ip -j ACCEPT &> /dev/null
+			eend $?
+		done
+	fi
+
 	# Close input for banned ips
 	# If there are ips defined then close all incoming connections from it
 
-	if [ ! -z $banned_ips ]; then
+	if [ -n "$banned_ips" ]; then
 		if [ -z "${banned_ips_log_prefix}" ]; then
 			echo -e "   ${red}*${restore} WARNING: The var \$banned_ips_log_prefix is not defined, using default definition"
 			banned_ips_log_prefix="Banned IP intrusion: "
 		fi
-		echo -e "   ${green}*${restore} Dropping input for banned ip's . . . "
-		for ip in ${banned_ips[@]}
+		echo -e "   ${green}*${restore} Dropping input for banned IPv4 ip's . . . "
+		for ip in "${banned_ips[@]}"
 		do
 			echo -ne "     IP: ${ip} . . . "
 			$ipt -A banned-ips -i $int -s $ip -j LOG \
 			--log-prefix "${banned_ips_log_prefix}" &> /dev/null && \
 			$ipt -A banned-ips -i $int -s $ip -j DROP &> /dev/null
+			eend $?
+		done
+	fi
+
+	if [ -n "$banned_ipv6_ips" ]; then
+		if [ -z "${banned_ips_log_prefix}" ]; then
+			echo -e "   ${red}*${restore} WARNING: The var \$banned_ips_log_prefix is not defined, using default definition"
+			banned_ips_log_prefix="Banned IP intrusion: "
+		fi
+		echo -e "   ${green}*${restore} Dropping input for banned IPv6 ip's . . . "
+		for ip in "${banned_ipv6_ips[@]}"
+		do
+			echo -ne "     IP: ${ip} . . . "
+			$ipt6 -A banned-ipv6-ips -i $int -s $ip -j LOG \
+			--log-prefix "${banned_ips_log_prefix}" &> /dev/null && \
+			$ipt6 -A banned-ipv6-ips -i $int -s $ip -j DROP &> /dev/null
 			eend $?
 		done
 	fi
@@ -417,7 +519,7 @@ start ()
 			echo -e "   ${red}*${restore} WARNING: The var \$ssh_log_prefix is not defined, using default definition"
 			ssh_log_prefix="SSH bruteforce attempt: "
 		fi
-		ebegin "Setting special rules for ssh"
+		ebegin "Setting special rules for ssh over IPv4"
 		$ipt -A ssh-rules -p tcp --dport $ssh -i $int -m state --state NEW -m \
 		recent --name SSH --update --seconds $ssh_time --hitcount $ssh_tries -j LOG \
 		--log-prefix "${ssh_log_prefix}" &> /dev/null && \
@@ -425,6 +527,16 @@ start ()
 		recent --name SSH --update --seconds $ssh_time --hitcount $ssh_tries -j DROP \
 		&> /dev/null && \
 		$ipt -A ssh-rules -p tcp --dport $ssh -i $int -m state --state NEW -m \
+		recent --name SSH --set &> /dev/null
+		eend $?
+		ebegin "Setting special rules for ssh over IPv6"
+		$ipt6 -A ssh-ipv6-rules -p tcp --dport $ssh -i $int -m state --state NEW -m \
+		recent --name SSH --update --seconds $ssh_time --hitcount $ssh_tries -j LOG \
+		--log-prefix "${ssh_log_prefix}" &> /dev/null && \
+		$ipt6 -A ssh-ipv6-rules -p tcp --dport $ssh -i $int -m state --state NEW -m \
+		recent --name SSH --update --seconds $ssh_time --hitcount $ssh_tries -j DROP \
+		&> /dev/null && \
+		$ipt6 -A ssh-ipv6-rules -p tcp --dport $ssh -i $int -m state --state NEW -m \
 		recent --name SSH --set &> /dev/null
 		eend $?
 	fi
@@ -435,7 +547,7 @@ start ()
 	# TCP Ports
 
 	if [ ! -z "$tcp_ports" ]; then
-		echo  -e "   ${green}*${restore} Opening input TCP ports . . . "
+		echo  -e "   ${green}*${restore} Opening input IPv4 TCP ports . . . "
 		for tcp_port_declaration in "${tcp_ports[@]}"
 		do
 			tcp_port_array=($tcp_port_declaration)
@@ -475,7 +587,7 @@ start ()
 	# UDP Ports
 
 	if [ ! -z "$udp_ports" ]; then
-		echo  -e "   ${green}*${restore} Opening input UDP ports . . . "
+		echo  -e "   ${green}*${restore} Opening input IPv4 UDP ports . . . "
 		for udp_port_declaration in "${udp_ports[@]}"
 		do
 			udp_port_array=($udp_port_declaration)
@@ -515,7 +627,7 @@ start ()
 	# Setting accepted incoming icmp types
 
 	if [ ! -z $icmp ]; then
-		echo  -e "   ${green}*${restore} Setting ICMP rules . . . "
+		echo  -e "   ${green}*${restore} Setting IPv4 ICMP rules . . . "
 		if $icmp_close; then
 			echo -ne "     Setting values for close ICMP responses: ${icmp_requests} request(s) ${icmp_average_limit} time(s) per ${icmp_time} . . . "
 			icmp_limit_command="-m limit --limit $icmp_average_limit/$icmp_time --limit-burst $icmp_requests"
@@ -531,43 +643,42 @@ start ()
 
 	# Permit responses for output connections
 
-	ebegin "Setting rules for established connections"
-	$ipt -A INPUT -i lo -m state --state ESTABLISHED,RELATED -j ACCEPT \
-	&> /dev/null && \
+	ebegin "Setting rules for established IPv4 connections"
 	$ipt -A INPUT -i $int -m state --state ESTABLISHED,RELATED -j ACCEPT \
 	&> /dev/null
 	eend $?
 
-	if [ ! -z "$tcp6_ports" ] || [ ! -z "$udp6_ports" ]; then
-		ebegin "Setting rules for established IPv6 connections"
-		$ipt6 -A INPUT -p ipv6-icmp -j ACCEPT && \
-		$ipt6 -A INPUT -i lo -m state --state ESTABLISHED,RELATED -j ACCEPT \
-		&> /dev/null && \
-		$ipt6 -A INPUT -i $int -m state --state ESTABLISHED,RELATED -j ACCEPT \
-		&> /dev/null
-		eend $?
-	fi
+	ebegin "Setting rules for established IPv6 connections"
+	$ipt6 -A INPUT -p ipv6-icmp -j ACCEPT && \
+	$ipt6 -A INPUT -i $int -m state --state ESTABLISHED,RELATED -j ACCEPT \
+	&> /dev/null
+	eend $?
 
 	# Applying own rules to input
 
-	ebegin "Applying own rules"
-	$ipt -A INPUT -j secure-networks &> /dev/null && \
-	$ipt -A INPUT -j secure-ips &> /dev/null && \
-	$ipt -A INPUT -j ssh-rules &> /dev/null && \
-	$ipt -A INPUT -j open-tcp-ports &> /dev/null && \
-	$ipt -A INPUT -j open-udp-ports &> /dev/null && \
-	$ipt -A INPUT -j incoming-icmp &> /dev/null && \
-	$ipt -A INPUT -j icmp-rules &> /dev/null && \
-	$ipt -A INPUT -j banned-networks &> /dev/null && \
-	$ipt -A INPUT -j banned-ips &> /dev/null
-	eend $?
 
-	if [ ! -z "$tcp6_ports" ] || [ ! -z "$udp6_ports" ]; then
-		ebegin "Applying own IPv6 rules"
-		$ipt6 -A INPUT -j open-tcp6-ports &> /dev/null && \
-		$ipt6 -A INPUT -j open-udp6-ports &> /dev/null
-		eend $?
-	fi
+	ebegin "Applying own IPv4 rules"
+	[ -n "$secure_networks" ] && { $ipt -A INPUT -j secure-networks &> /dev/null || ok=false; }
+	[ -n "$banned_networks" ] && { $ipt -A INPUT -j banned-networks &> /dev/null || ok=false; }
+	[ -n "$secure_ips" ] && { $ipt -A INPUT -j secure-ips &> /dev/null || ok=false; }
+	[ -n "$banned_ips" ] && { $ipt -A INPUT -j banned-ips &> /dev/null || ok=false; }
+	[ -n "$ssh" ] && { $ipt -A INPUT -j ssh-rules &> /dev/null || ok=false; }
+	[ -n "$tcp_ports" ] && { $ipt -A INPUT -j open-tcp-ports &> /dev/null || ok=false; }
+	[ -n "$udp_ports" ] && { $ipt -A INPUT -j open-udp-ports &> /dev/null || ok=false; }
+	[ -n "$icmp" ] && { $ipt -A INPUT -j incoming-icmp &> /dev/null || ok=false; }
+	$ok
+	eend $? && unset $ok
+
+	ebegin "Applying own IPv6 rules"
+	[ -n "$secure_ipv6_networks" ] && { $ipt6 -A INPUT -j secure-ipv6-networks &> /dev/null || ok=false; }
+	[ -n "$banned_ipv6_networks" ] && { $ipt6 -A INPUT -j banned-ipv6-networks &> /dev/null || ok=false; }
+	[ -n "$secure_ipv6_ips" ] && { $ipt6 -A INPUT -j secure-ipv6-ips &> /dev/null || ok=false; }
+	[ -n "$banned_ipv6_ips" ] && { $ipt6 -A INPUT -j banned-ipv6-ips &> /dev/null || ok=false; }
+	[ -n "$ssh" ] && { $ipt6 -A INPUT -j ssh-ipv6-rules &> /dev/null || ok=false; }
+	[ -n "$tcp6_ports" ] && { $ipt6 -A INPUT -j open-tcp6-ports &> /dev/null || ok=false; }
+	[ -n "$udp6_ports" ] && { $ipt6 -A INPUT -j open-udp6-ports &> /dev/null || ok=false; }
+	$ok
+	eend $? && unset $ok
 
 	echo -e " ${bold}*${restore} all done."
 }
@@ -584,33 +695,29 @@ stop ()
 
 	# Flush all rules
 
-	ebegin "Flushing firewall rules"
+	ebegin "Flushing IPv4 firewall rules"
 	$ipt -Z &> /dev/null && \
 	$ipt -F &> /dev/null && \
 	$ipt -X &> /dev/null
 	eend $?
 
-	if [ ! -z "$tcp6_ports" ] || [ ! -z "$udp6_ports" ]; then
-		ebegin "Flushing IPv6 firewall rules"
-		$ipt6 -Z &> /dev/null && \
-		$ipt6 -F &> /dev/null
-		$ipt6 -X &> /dev/null
-		eend $?
-	fi
+	ebegin "Flushing IPv6 firewall rules"
+	$ipt6 -Z &> /dev/null && \
+	$ipt6 -F &> /dev/null
+	$ipt6 -X &> /dev/null
+	eend $?
 
 	# Accept ALL
 
-	ebegin "Setting default firewall rules"
+	ebegin "Setting default IPv4 firewall rules"
 	$ipt -P INPUT ACCEPT &> /dev/null && \
 	$ipt -P OUTPUT ACCEPT &> /dev/null
 	eend $?
 
-	if [ ! -z "$tcp6_ports" ] || [ ! -z "$udp6_ports" ]; then
-		ebegin "Setting default IPv6 firewall rules"
-		$ipt6 -P INPUT ACCEPT &> /dev/null && \
-		$ipt6 -P OUTPUT ACCEPT &> /dev/null
-		eend $?
-	fi
+	ebegin "Setting default IPv6 firewall rules"
+	$ipt6 -P INPUT ACCEPT &> /dev/null && \
+	$ipt6 -P OUTPUT ACCEPT &> /dev/null
+	eend $?
 
 	# Test if is neccesary module unload
 
@@ -619,22 +726,57 @@ stop ()
 		# Module unloading
 
 		echo -e "   ${green}*${restore} Unloading kernel modules . . . "
-		$mpr -r -q -s ipt_LOG && echo             "     ipt_LOG"
-		$mpr -r -q -s ipt_recent && echo          "     ipt_recent"
-		$mpr -r -q -s xt_limit && echo            "     xt_limit"
-		$mpr -r -q -s xt_state && echo            "     xt_state"
-		$mpr -r -q -s xt_tcpudp && echo           "     xt_tcpudp"
-		$mpr -r -q -s nf_conntrack_ipv4 && echo   "     nf_conntrack_ipv4"
-		$mpr -r -q -s nf_conntrack && echo        "     nf_conntrack"
-		$mpr -r -q -s iptable_filter && echo      "     iptable_filter"
-		$mpr -r -q -s ip_tables && echo           "     ip_tables"
-		$mpr -r -q -s x_tables && echo            "     x_tables"
-		if [ ! -z "$tcp6_ports" ] || [ ! -z "$udp6_ports" ]; then
-			$mpr -r -q -s nf_conntrack_ipv6 && echo "     nf_conntrack_ipv6"
-			$mpr -r -q -s nf_defrag_ipv6 && echo    "     nf_defrag_ipv6"
-			$mpr -r -q -s ip6table_filter && echo   "     ip6table_filter"
-			$mpr -r -q -s ip6_tables && echo        "     ip6_tables"
+
+		# Unload module for log IPv6
+
+		if [ ! -z "$banned_ipv6_networks" ] || \
+		   [ ! -z "$banned_ipv6_ips" ] || \
+		   [ ! -z "$ssh" ]; then
+			$mpr -r -q -s ip6t_LOG && echo        "     ip6t_LOG"
 		fi
+
+		# IPv6 modules unloading
+
+		$mpr -r -q -s nf_conntrack_ipv6 && echo "     nf_conntrack_ipv6"
+		$mpr -r -q -s nf_defrag_ipv6 && echo    "     nf_defrag_ipv6"
+		$mpr -r -q -s ip6table_filter && echo   "     ip6table_filter"
+		$mpr -r -q -s ip6_tables && echo        "     ip6_tables"
+
+		# Unload module for log
+
+		if [ ! -z "$banned_networks" ] || \
+		   [ ! -z "$banned_ips" ] || \
+		   [ ! -z "$ssh" ]; then
+			$mpr -r -q -s ipt_LOG && echo         "     ipt_LOG"
+		fi
+
+		# Unload module for close ICMP responses
+
+		$icmp_close && \
+			$mpr -r -q -s xt_limit && echo        "     xt_limit"
+
+		# Unload module for ssh special processing
+
+		if [ ! -z "$ssh" ]; then
+			$mpr -r -q -s ipt_recent && echo      "     ipt_recent"
+		fi
+
+		# Unload module for manage ports
+
+		if [ ! -z "$tcp_ports" ] || [ ! -z "$udp_ports" ] || [ ! -z "$ssh" ]; then
+			$mpr -r -q -s xt_tcpudp && echo       "     xt_tcpudp"
+		fi
+
+		# IPv4 modules unloading
+
+		$mpr -r -q -s nf_conntrack_ipv4 && echo "     nf_conntrack_ipv4"
+		$mpr -r -q -s nf_defrag_ipv4 && echo    "     nf_defrag_ipv4"
+		$mpr -r -q -s xt_state && echo          "     xt_state"
+		$mpr -r -q -s nf_conntrack && echo      "     nf_conntrack"
+		$mpr -r -q -s iptable_filter && echo    "     iptable_filter"
+		$mpr -r -q -s ip_tables && echo         "     ip_tables"
+		$mpr -r -q -s x_tables && echo          "     x_tables"
+
 	fi
 
 	echo -e " ${bold}*${restore} all done."
