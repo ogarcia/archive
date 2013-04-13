@@ -1,0 +1,10 @@
+Changelog
+=========
+
+0.1-very_very_very_beta (released 2013-04-13)
+---------------------------------------------
+
+- First implementation
+  - HTML5 code from original MiniSub (https://github.com/tsquillario/MiniSub).
+  - Support for save window position.
+  - Support for close window in MacOS and still playing.
