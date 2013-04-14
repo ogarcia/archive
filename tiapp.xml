@@ -16,10 +16,10 @@
 <url>app://index.html</url>
 <width>800</width>
 <max-width>-1</max-width>
-<min-width>800</min-width>
-<height>600</height>
+<min-width>740</min-width>
+<height>500</height>
 <max-height>-1</max-height>
-<min-height>600</min-height>
+<min-height>460</min-height>
 <fullscreen>false</fullscreen>
 <resizable>true</resizable>
 <chrome scrollbars="true">true</chrome>
