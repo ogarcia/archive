@@ -149,11 +149,31 @@ Ti.API.addEventListener(Ti.APP_EXIT, function () {
 //read settings from cookie and store it in properties file
 	if (getCookie('username')) appProperties.setString('UserName',getCookie('username'));
 	if (getCookie('passwordenc')) appProperties.setString('PasswordEnc',getCookie('passwordenc'));
-	if (getCookie('AutoPlaylists')) appProperties.setString('AutoPlaylists',getCookie('AutoPlaylists'));
-	if (getCookie('AutoAlbumSize')) appProperties.setString('AutoAlbumSize',getCookie('AutoAlbumSize'));
-	if (getCookie('AutoPlaylistSize')) appProperties.setString('PasswordEnc',getCookie('passwordenc'));
+	if (getCookie('AutoPlaylists')) {
+		appProperties.setString('AutoPlaylists',getCookie('AutoPlaylists'));
+	} else {
+		if(appProperties.hasProperty('AutoPlaylists'))
+			appProperties.removeProperty('AutoPlaylists');
+	}
+	if (getCookie('AutoAlbumSize')) {
+		appProperties.setString('AutoAlbumSize',getCookie('AutoAlbumSize'));
+	} else {
+		if(appProperties.hasProperty('AutoAlbumSize'))
+			appProperties.removeProperty('AutoAlbumSize');
+	}
+	if (getCookie('AutoPlaylistSize')) {
+		appProperties.setString('AutoPlaylistSize',getCookie('AutoPlaylistSize'));
+	} else {
+		if(appProperties.hasProperty('AutoPlaylistSize'))
+			appProperties.removeProperty('AutoPlaylistSize');
+	}
 	if (getCookie('Server')) appProperties.setString('Server',getCookie('Server'));
-	if (getCookie('ApplicationName')) appProperties.setString('PasswordEnc',getCookie('passwordenc'));
+	if (getCookie('ApplicationName')) {
+		appProperties.setString('ApplicationName',getCookie('ApplicationName'));
+	} else {
+		if(appProperties.hasProperty('ApplicationName'))
+			appProperties.removeProperty('ApplicationName');
+	}
 	if (getCookie('Theme')) appProperties.setString('Theme',getCookie('Theme'));
 	if (getCookie('HideAZ')) {
 		appProperties.setInt('HideAZ',1);
