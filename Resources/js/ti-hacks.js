@@ -177,7 +177,8 @@ Ti.API.addEventListener(Ti.APP_EXIT, function () {
 	} else {
 		//if not save track position delete current song
 		appProperties.setInt('SaveTrackPosition',0);
-		appProperties.removeProperty('CurrentSong');
+		if(appProperties.hasProperty('CurrentSong'))
+			appProperties.removeProperty('CurrentSong');
 	}
 	if (getCookie('ScrollTitle')) {
 		appProperties.setInt('ScrollTitle',1);
