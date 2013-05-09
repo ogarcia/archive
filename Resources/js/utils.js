@@ -1,10 +1,21 @@
 define(['jquery', 'jquery.cookie'], function ($) {
+	
+	var appPropertiesFile = Ti.Filesystem.getFile(Ti.API.application.dataPath, "application.properties");
+	var appProperties = Ti.App.createProperties();
+	if (appPropertiesFile.exists()) appProperties = Ti.App.loadProperties(appPropertiesFile.nativePath());
+
     function getValue(value) {
-        if ($.cookie(value)) {
+    	if (appProperties.hasProperty(value)) {
+    		return appProperties.getString(value);
+    	} else {
+    		return false;
+    	}
+        /* if ($.cookie(value)) {
             return $.cookie(value);
         } else {
             return false;
         }
+        */
         /* jQuery.cookies.js
         if (browserStorageCheck) {
         var item = localStorage.getItem(value);
@@ -19,7 +30,9 @@ define(['jquery', 'jquery.cookie'], function ($) {
         */
     }
     function setValue(key, value, notify) {
-        $.cookie(key, value, { expires: 365 });
+    	appProperties.setString(key,value.toString());
+    	appProperties.saveTo(appPropertiesFile.nativePath());
+        /* $.cookie(key, value, { expires: 365 }); */
         if (notify) {
             updateMessage('"' + key + '" Updated', true);
         }
@@ -137,6 +150,9 @@ define(['jquery', 'jquery.cookie'], function ($) {
         var a = time.split(':'); // split it at the colons
         var seconds;
         switch (a.length) {
+            case 1:
+                seconds = 0;
+                break;
             case 2:
                 seconds = (parseInt(a[0])) * 60 + (parseInt(a[1]));
                 break;
@@ -329,8 +345,9 @@ define(['jquery', 'jquery.cookie'], function ($) {
                 popup = window.webkitNotifications.createHTMLNotification(text);
             }
             if (bind = '#NextTrack') {
-                popup.addEventListener('click', function () {
-                    $(bind).click();
+                popup.addEventListener('click', function (bind) {
+                    //$(bind).click();
+                    require("player").nextTrack();
                     this.cancel();
                 })
             }
@@ -445,6 +462,9 @@ define(['jquery', 'jquery.cookie'], function ($) {
         toHTML: toHTML,
         findKeyForCode: findKeyForCode,
         browserStorageCheck: browserStorageCheck,
+        parseVersionString: parseVersionString,
+        checkVersion: checkVersion,
+        checkVersionNewer: checkVersionNewer,
         changeTab: changeTab,
         confirmDelete: confirmDelete,
         requestPermissionIfRequired: requestPermissionIfRequired,

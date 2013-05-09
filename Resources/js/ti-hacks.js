@@ -58,7 +58,7 @@ Ti.API.addEventListener(Ti.APP_EXIT, function () {
 /************************************/
 
 //create small functions to store an read from cookie
-function setCookie(c_name,value) {
+/* function setCookie(c_name,value) {
 	var exdate = new Date();
 	var exdays = 365;
 	exdate.setDate(exdate.getDate() + exdays);
@@ -141,7 +141,7 @@ Ti.API.addEventListener(Ti.APP_EXIT, function () {
 	if (getCookie('splitter4')) appProperties.setString('splitter4',getCookie('splitter4'));
 //store app config to file
 	appProperties.saveTo(appPropertiesFile.nativePath());
-});
+}); */
 
 /*******************************/
 /* Emulate webkitNotifications */

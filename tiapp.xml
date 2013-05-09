@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <ti:app xmlns:ti='http://ti.appcelerator.org'>
 <!-- These values are edited/maintained by TideSDK Developer -->
-<id>com.connectical.minisub</id>
-<name>MiniSub</name>
-<version>0.3</version>
+<id>com.connectical.jamstash</id>
+<name>Jamstash</name>
+<version>0.4</version>
 <description>Mini Player for Subsonic</description>
 <publisher>Óscar García Amor</publisher>
 <url>http://connectical.com</url>
@@ -12,7 +12,7 @@
 <!-- Window Definition - these values can be edited -->
 <window>
 <id>initial</id>
-<title>MiniSub</title>
+<title>Jamstash</title>
 <url>app://index.html</url>
 <width>800</width>
 <max-width>-1</max-width>

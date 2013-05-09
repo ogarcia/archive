@@ -13,7 +13,7 @@
         Server: ko.observable(""),
         Protocol: ko.observable("jsonp"),
         Protocols: new ko.observableArray(["json", "jsonp"]),
-        ApplicationName: ko.observable("MiniSub"),
+        ApplicationName: ko.observable("Jamstash"),
         ApiVersion: ko.observable("1.6.0"),
         AutoPlaylists: ko.observable(""),
         AutoPlaylistSize: ko.observable(25),
@@ -30,7 +30,9 @@
         Theme: ko.observable("Default"),
         Themes: new ko.observableArray(["Default", "Dark"]),
         AutoPlay: ko.observable(false),
-        Debug: ko.observable(true)
+        LoopQueue: ko.observable(false),
+        Repeat: ko.observable(false),
+        Debug: ko.observable(false)
     };
     /* For Basic Authentication
     settings.Auth = ko.computed(function () {
@@ -71,7 +73,14 @@
     self.settings.AutoPlaylistSize.subscribe(function (newValue) { utils.setValue('AutoPlaylistSize', newValue, true); });
     self.settings.AutoAlbumSize.subscribe(function (newValue) { utils.setValue('AutoAlbumSize', newValue, true); });
     self.settings.SavedCollections.subscribe(function (newValue) { utils.setValue('SavedCollections', newValue, true); });
-    self.settings.HideAZ.subscribe(function (newValue) { utils.setValue('HideAZ', newValue, true); });
+    self.settings.HideAZ.subscribe(function (newValue) {
+        utils.setValue('HideAZ', newValue, true);
+        if (newValue) {
+            $('#BottomContainer').hide();
+        } else {
+            $('#BottomContainer').show();
+        }
+    });
     self.settings.ScrollTitle.subscribe(function (newValue) { utils.setValue('ScrollTitle', newValue, true); });
     self.settings.NotificationSong.subscribe(function (newValue) {
         utils.requestPermissionIfRequired();
@@ -102,6 +111,8 @@
     });
     self.settings.ForceFlash.subscribe(function (newValue) { utils.setValue('ForceFlash', newValue, true); });
     self.settings.AutoPlay.subscribe(function (newValue) { utils.setValue('AutoPlay', newValue, true); });
+    self.settings.LoopQueue.subscribe(function (newValue) { utils.setValue('LoopQueue', newValue, true); });
+    self.settings.Repeat.subscribe(function (newValue) { utils.setValue('Repeat', newValue, true); });
     self.settings.Theme.subscribe(function (newValue) {
         utils.switchTheme(newValue);
         utils.setValue('Theme', newValue, true);
@@ -129,14 +140,29 @@
             return new model.Song(song.id, song.parent, track, song.title, song.artist, song.artistId, song.album, song.albumId, coverartthumb, coverartfull, song.duration, song.userRating, starred, suffix, specs, url, 0, description);
         }
     }
-
-    self.changeLog = [
-    { date: "4/15/2013", version: "3.0", changes: [
-	        { text: "- Rewrite of code using Require.js, Knockout.js & Sammy.js (Expect missing features/bugs)"}]
+    // <a href=\"\" target=\"_blank\"></a>
+    /*
+    { date: "", version: "", changes: 
+    [{ text: "- "}]
     },
+    */
+    self.changeLog = [
+        { date: "5/1/2013", version: "3.0.8",
+            changes: [
+	        { text: "- Added back Folder playlists as well as editing support for playlists" },
+	        { text: "- Switched to the jQuery UI Layout Plug-in <a href=\"http://layout.jquery-dev.net\" target=\"_blank\">http://layout.jquery-dev.net</a> for layout panes" },
+            ]
+        },
+        { date: "4/15/2013", version: "3.0.5", 
+            changes: [
+	        { text: "- Rewrite of code using <a href=\"http://requirejs.org\" target=\"_blank\">Require.js</a>, <a href=\"http://knockoutjs.com\" target=\"_blank\">Knockout.js</a> & <a href=\"http://sammyjs.org\" target=\"_blank\">Sammy.js</a> (Expect missing features/bugs)" },
+            { text: "- New name, new logo!" },
+	        { text: "- Basic support for <a href=\"http://www.archive.org/details/etree\" target=\"_blank\">Archive.org</a> streaming" }
+            ]
+        },
     { date: "1/15/2013", version: "2.4.1", changes: [
-	        { text: "- Column alignment, moved pager, bug fixes" }]
-      },
+	        { text: "- Column alignment, moved pager, bug fixes"}]
+    },
       { date: "12/21/2012", version: "2.3.8",
           changes: [
 	    { text: "- Added support for the <a href=\"https://chrome.google.com/webstore/detail/swayfm-unified-music-medi/icckhjgjjompfgoiidainoapgjepncej\" target=\"_blank\">Sway.fm Unified Music Media Keys</a> Chrome extension" },
@@ -147,7 +173,7 @@
       },
       { date: "12/6/2012", version: "2.3.6",
           changes: [
-	    { text: "- Added Setting to toggle JSONP (This is for cross-domain requests, aka Subsonic is hosted on a different domain than MiniSub)" },
+	    { text: "- Added Setting to toggle JSONP (This is for cross-domain requests, aka Subsonic is hosted on a different domain than Jamstash)" },
 	    { text: "- Switched back to URL authentication (Including coverArt)" }
     ]
       },
@@ -202,7 +228,7 @@
       },
       { date: "10/7/2012", version: "2.1.2",
           changes: [
-	    { text: "- Current Playlist will stay focused on the current track (Thanks <a href=\"https://github.com/tsquillario/MiniSub/issues/42\" target=\"_blank\">Concept211</a>)" },
+	    { text: "- Current Playlist will stay focused on the current track (Thanks <a href=\"https://github.com/tsquillario/Jamstash/issues/42\" target=\"_blank\">Concept211</a>)" },
 	    { text: "- Option to save track position & the Current Playlist automatically, will persist on a browser refresh/close" },
 	    { text: "- Added Autopilot feature to start playing random songs with one click, this will continue to load more songs" },
 	    { text: "- Made it easier to skip to a certain position in the current song (Hover over the progress bar)" },
@@ -308,27 +334,27 @@
 	    { text: "- Redesigned player to utilize entire width of screen" }
     ]
       },
-      { date: "3/6/2012", changes: [{ text: ".022 can be installed anywhere, Chrome App support, JSONP implementation"}] },
-      { date: "2/22/2012", changes: [{ text: ".021 added sidebar for chat and now playing, bug fixes"}] },
-      { date: "1/25/2012", changes: [{ text: ".020 table layout for songs, bug fixes, display tweaks"}] },
-      { date: "1/18/2012", changes: [{ text: ".019 rating support, random playlist, new preferences added"}] },
-      { date: "1/9/2012", changes: [{ text: ".018 added media keyboard bindings from @itchy"}] },
-      { date: "1/5/2012", changes: [{ text: ".017 added FancyBox to CoverArt, improved current playlist functions"}] },
-      { date: "11/22/2011", changes: [{ text: ".016 single artist bug fix, added API error notification"}] },
-      { date: "11/15/2011", changes: [{ text: ".015 fixed search issue, added last.fm support from @smrq"}] },
-      { date: "10/14/2011", changes: [{ text: ".014 multiple api call issue fix"}] },
-      { date: "10/14/2011", changes: [{ text: ".013 moved auto playlists, album display tweaks"}] },
-      { date: "10/13/2011", changes: [{ text: ".012 added Current Playlist, fixed some bugs"}] },
-      { date: "10/2/2011", changes: [{ text: ".011 added play button from album list"}] },
-      { date: "10/1/2011", changes: [{ text: ".010 fix for subdirectory custom installs"}] },
-      { date: "9/30/2011", changes: [{ text: ".009 now playing support, added back button to track list, other tweaks"}] },
-      { date: "9/17/2011", changes: [{ text: ".008 pause/play button tweak"}] },
-      { date: "9/17/2011", changes: [{ text: ".007 display tweaks for tablet, chat feature added"}] },
-      { date: "8/25/2011", changes: [{ text: ".006 flexible layout, added buttons to player"}] },
-      { date: "8/24/2011", changes: [{ text: ".005 playlist fixes, added auto playlists"}] },
-      { date: "8/17/2011", changes: [{ text: ".004 https fix, audio player tweaks"}] },
-      { date: "8/15/2011", changes: [{ text: ".003 Fixed song details on player"}] },
-      { date: "8/15/2011", changes: [{ text: ".001 Initial Release"}] }
+      { date: "3/6/2012", version: "", changes: [{ text: ".022 can be installed anywhere, Chrome App support, JSONP implementation"}] },
+      { date: "2/22/2012", version: "", changes: [{ text: ".021 added sidebar for chat and now playing, bug fixes"}] },
+      { date: "1/25/2012", version: "", changes: [{ text: ".020 table layout for songs, bug fixes, display tweaks"}] },
+      { date: "1/18/2012", version: "", changes: [{ text: ".019 rating support, random playlist, new preferences added"}] },
+      { date: "1/9/2012", version: "", changes: [{ text: ".018 added media keyboard bindings from @itchy"}] },
+      { date: "1/5/2012", version: "", changes: [{ text: ".017 added FancyBox to CoverArt, improved current playlist functions"}] },
+      { date: "11/22/2011", version: "", changes: [{ text: ".016 single artist bug fix, added API error notification"}] },
+      { date: "11/15/2011", version: "", changes: [{ text: ".015 fixed search issue, added last.fm support from @smrq"}] },
+      { date: "10/14/2011", version: "", changes: [{ text: ".014 multiple api call issue fix"}] },
+      { date: "10/14/2011", version: "", changes: [{ text: ".013 moved auto playlists, album display tweaks"}] },
+      { date: "10/13/2011", version: "", changes: [{ text: ".012 added Current Playlist, fixed some bugs"}] },
+      { date: "10/2/2011", version: "", changes: [{ text: ".011 added play button from album list"}] },
+      { date: "10/1/2011", version: "", changes: [{ text: ".010 fix for subdirectory custom installs"}] },
+      { date: "9/30/2011", version: "", changes: [{ text: ".009 now playing support, added back button to track list, other tweaks"}] },
+      { date: "9/17/2011", version: "", changes: [{ text: ".008 pause/play button tweak"}] },
+      { date: "9/17/2011", version: "", changes: [{ text: ".007 display tweaks for tablet, chat feature added"}] },
+      { date: "8/25/2011", version: "", changes: [{ text: ".006 flexible layout, added buttons to player"}] },
+      { date: "8/24/2011", version: "", changes: [{ text: ".005 playlist fixes, added auto playlists"}] },
+      { date: "8/17/2011", version: "", changes: [{ text: ".004 https fix, audio player tweaks"}] },
+      { date: "8/15/2011", version: "", changes: [{ text: ".003 Fixed song details on player"}] },
+      { date: "8/15/2011", version: "", changes: [{ text: ".001 Initial Release"}] }
     ]
 
     self.archiveCollections = [
