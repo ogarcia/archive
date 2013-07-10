@@ -9,8 +9,8 @@ handlers:
   static_files: \1
   upload: (.*\.(gif|png|jpg|ico|js|css|txt))
 
-- url: /update/.*
-  script: update.py
+- url: /setdnsrecord/.*
+  script: setdnsrecord.py
 
 - url: /getdnsrecords/.*
   script: getdnsrecords.py
