@@ -1,5 +1,5 @@
 application: cf-ddns
-version: 1
+version: 0-9-rc
 runtime: python27
 api_version: 1
 threadsafe: false
@@ -8,6 +8,12 @@ handlers:
 - url: /(.*\.(gif|png|jpg|ico|js|css|txt))
   static_files: \1
   upload: (.*\.(gif|png|jpg|ico|js|css|txt))
+
+- url: /css
+  static_dir: /css
+
+- url: /js
+  static_dir: /js
 
 - url: /up/.*
   script: up.py
