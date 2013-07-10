@@ -8,16 +8,12 @@
 		<script src="/js/jquery.jsoneditor.min.js"></script>
 	</head>
 	<body>
-		<head>
-</head>
-<body>
-	<div id="cfjson" class="json-editor"></div>
-	<script>
-		var cfjson = {{ cfjson|safe }};
-		$('#cfjson').jsonEditor(cfjson);
-	</script>
+		<div id="cfjson" class="json-editor"></div>
+		<script type="text/javascript">
+			var cfjson = {{ cfjson|safe }};
+			$('#cfjson').jsonEditor(cfjson);
+		</script>
 	</body>
 </html>
 <!-- vim:fenc=utf-8
   -->
-
