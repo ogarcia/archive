@@ -9,25 +9,13 @@ class getDNSrecords(webapp.RequestHandler):
 	cf = 'https://www.cloudflare.com:443/api_json.html'
 	request = urllib2.Request(cf + '?a=rec_load_all&tkn=' + api_key + '&email=' + email + '&z=' + zone)
 	rc = urllib2.urlopen(request)
-	self.response.write("""
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<html>
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <title>CloudFlare Dynamic DNS</title>
-    <link rel="stylesheet" href="/css/jsoneditor.css"/>
-    <script src="/js/jquery.min.js"></script>
-    <script src="/js/jquery.jsoneditor.min.js"></script>
-</head>
-<body>
-    <div id="cfjson" class="json-editor"></div>
-    <script>
-""" + "var cfjson = " + rc.read() + ";" + """
-    $('#cfjson').jsonEditor(cfjson);
-    </script>
-</body>
-</html>
-""")
+
+	template_values = {
+            'cfjson': rc.read(),
+            }
+
+	path = os.path.join(os.path.dirname(__file__), 'getdnsrecords.html')
+	self.response.out.write(template.render(path, template_values))
 
 def main():
 	application = webapp.WSGIApplication([('/getdnsrecords/([^/]+)/([^/]+)/([^/]+)', getDNSrecords)], debug=True)
