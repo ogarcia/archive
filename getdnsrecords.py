@@ -8,13 +8,21 @@ class getDNSrecords(webapp.RequestHandler):
     def get (self, api_key, email, zone):
         cf = 'https://www.cloudflare.com:443/api_json.html'
         request = urllib2.Request(cf + '?a=rec_load_all&tkn=' + api_key + '&email=' + email + '&z=' + zone)
-        rc = urllib2.urlopen(request)
+        request.add_header('Accept', 'text/*')
 
-        template_values = {'cfjson': rc.read(),}
+        try:
+          rc = urllib2.urlopen(request)
 
-        path = os.path.join(os.path.dirname(__file__), 'fancyjson.html')
-        self.response.headers['Content-Type'] = 'text/html'
-        self.response.out.write(template.render(path, template_values))
+          template_values = {'cfjson': rc.read(),}
+
+          path = os.path.join(os.path.dirname(__file__), 'fancyjson.html')
+          self.response.headers['Content-Type'] = 'text/html'
+          self.response.out.write(template.render(path, template_values))
+
+        except urllib2.HTTPError, e:
+            self.response.headers['Content-Type'] = 'text/html'
+            self.response.set_status(403)
+            self.response.out.write(e.fp.read().replace("/cdn-cgi","https://www.cloudflare.com/cdn-cgi"))
 
 def main():
     application = webapp.WSGIApplication([('/getdnsrecords/([^/]+)/([^/]+)/([^/]+)', getDNSrecords)], debug=True)
