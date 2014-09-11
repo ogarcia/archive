@@ -1,0 +1,17 @@
+[Unit]
+Description=Gitlab Sidekiq
+
+[Service]
+Type=simple
+SyslogIdentifier=gl-sidekiq
+User=git
+Environment="PATH=/srv/git/.gem/ruby/2.0.0/bin/:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:/usr/bin/core_perl"
+PIDFile=/srv/git/gitlab/tmp/pids/sidekiq.pid
+WorkingDirectory=/srv/git/gitlab
+TimeoutStartSec=600
+
+ExecStart=/srv/git/.gem/ruby/2.0.0/bin/bundle exec sidekiq -q post_receive,mailer,system_hook,project_web_hook,gitlab_shell,common,default -e production -P /srv/git/gitlab/tmp/pids/sidekiq.pid
+ExecStop=/srv/git/.gem/ruby/2.0.0/bin/bundle exec sidekiqctl stop /srv/git/gitlab/tmp/pids/sidekiq.pid
+
+[Install]
+WantedBy=multi-user.target

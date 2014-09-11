@@ -1,0 +1,17 @@
+[Unit]
+Description=Gitlab Unicorn Rails server
+
+[Service]
+Type=simple
+SyslogIdentifier=gl-unicorn
+User=git
+PIDFile=/srv/git/gitlab/tmp/pids/unicorn.pid
+WorkingDirectory=/srv/git/gitlab
+TimeoutStartSec=600
+
+ExecStart=/srv/git/.gem/ruby/2.0.0/bin/bundle exec unicorn -c /srv/git/gitlab/config/unicorn.rb -E production
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStop=/bin/kill -QUIT $MAINPID
+
+[Install]
+WantedBy=multi-user.target
