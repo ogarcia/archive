@@ -26,3 +26,11 @@ The scripts in `upstart` folder must be copied to `/etc/init` and don't need
 to enable them because this occurs automagically. You can make a symbolic
 link in `/etc/init.d` folder with the same name to `/lib/init/upstart-job`
 for use the old fashion `/etc/init.d/script start|stop|restart...`.
+
+## Runit
+
+The scripts in `runit` folder could be copied to `/etc/runit` in most systems,
+where `runsvdir` parse them (check runit documentation for your OS for more
+information, because of the path can change in some distributions). Our
+recomendation is to put these files in other path `/etc/sv` and (soft) linking
+them to `/etc/runit`, to avoid unwanted running actions.
