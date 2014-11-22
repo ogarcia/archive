@@ -18,6 +18,9 @@ handlers:
 - url: /up/.*
   script: up.py
 
+- url: /ipup/.*
+  script: ipup.py
+
 - url: /setdnsrecord/.*
   script: setdnsrecord.py
 
