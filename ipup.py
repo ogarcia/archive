@@ -17,7 +17,7 @@ class setDNSrecord(webapp.RequestHandler):
         self.response.out.write(template.render(path, template_values))
 
 def main():
-    app = webapp.WSGIApplication([('/up/([^/]+)/([^/]+)/([^/]+)/([^/]+)',setDNSrecord)], debug=True)
+    app = webapp.WSGIApplication([('/ipup/([^/]+)/([^/]+)/([^/]+)/([^/]+)',setDNSrecord)], debug=True)
     util.run_wsgi_app(app)
 
 if __name__ == '__main__':
