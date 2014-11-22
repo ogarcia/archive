@@ -1,5 +1,5 @@
 application: cf-ddns
-version: 0-9-rc
+version: 0-10-rc
 runtime: python27
 api_version: 1
 threadsafe: false
