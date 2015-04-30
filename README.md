@@ -14,12 +14,11 @@ them to `/etc/runit`, to avoid unwanted running actions.
 
 ## systemd
 
-The scripts in `systemd` folder must be copied to
-`/usr/lib/systemd/system/`. When a new script is added to this folder (or
-a script has been modified) you must execute `systemctl daemon-reload` to
-reload it into systemd. To enable the scripts you must execute `systemctl
-enable service` (being service the name of the script without .service
-extension).
+The scripts in `systemd` folder must be copied to `/usr/lib/systemd/system`.
+When a new script is added to this folder (or a script has been modified) you
+must execute `systemctl daemon-reload` to reload it into systemd. To enable the
+scripts you must execute `systemctl enable service` (being service the name of
+the script without .service extension).
 
 ## System V
 
