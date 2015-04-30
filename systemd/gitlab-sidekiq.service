@@ -10,7 +10,7 @@ PIDFile=/srv/git/gitlab/tmp/pids/sidekiq.pid
 WorkingDirectory=/srv/git/gitlab
 TimeoutStartSec=600
 
-ExecStart=/srv/git/.gem/ruby/2.0.0/bin/bundle exec sidekiq -q post_receive,mailer,system_hook,project_web_hook,gitlab_shell,common,default -e production -P /srv/git/gitlab/tmp/pids/sidekiq.pid
+ExecStart=/srv/git/.gem/ruby/2.0.0/bin/bundle exec sidekiq -q post_receive -q mailer -q system_hook -q project_web_hook -q gitlab_shell -q common -q default -e production -P /srv/git/gitlab/tmp/pids/sidekiq.pid
 ExecStop=/srv/git/.gem/ruby/2.0.0/bin/bundle exec sidekiqctl stop /srv/git/gitlab/tmp/pids/sidekiq.pid
 
 [Install]
