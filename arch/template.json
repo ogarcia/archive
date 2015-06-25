@@ -1,0 +1,46 @@
+{
+	"provisioners": [
+		{
+			"type": "shell",
+			"scripts": [
+				"scripts/base.sh",
+				"scripts/vagrant.sh",
+				"scripts/clean.sh"
+			]
+		}
+	],
+	"builders": [
+		{
+			"type": "virtualbox-iso",
+			"boot_command": [
+				"<enter><wait10><wait10><wait10>",
+				"fdisk /dev/sda<enter>",
+				"n<enter><enter><enter><enter>+512M<enter>",
+				"n<enter><enter><enter><enter>+2G<enter>",
+				"n<enter><enter><enter><enter><enter>",
+				"t<enter>2<enter>82<enter>w<enter>",
+				"echo root:toor | chpasswd<enter>",
+				"systemctl start sshd<enter>"
+			],
+			"headless": false,
+			"boot_wait": "10s",
+			"disk_size": 51200,
+			"guest_additions_mode": "disable",
+			"guest_os_type": "ArchLinux_64",
+			"iso_checksum": "6f801d3d827058494d6460855322995873afcbb05eaa34ff58a0a299c51f7784",
+			"iso_checksum_type": "sha256",
+			"iso_url": "http://mirror.rackspace.com/archlinux/iso/2015.06.01/archlinux-2015.06.01-dual.iso",
+			"ssh_username": "root",
+			"ssh_password": "toor",
+			"ssh_port": 22,
+			"ssh_wait_timeout": "10000s",
+			"shutdown_command": "echo '/sbin/halt -h -p' > shutdown.sh; echo 'vagrant'|sudo -S bash 'shutdown.sh'"
+		}
+	],
+	"post-processors": [
+		{
+			"type": "vagrant",
+			"output": "archlinux-{{isotime \"20150101\"}}-x64-1.0.box"
+		}
+	]
+}
