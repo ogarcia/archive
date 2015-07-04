@@ -40,7 +40,7 @@
 	"post-processors": [
 		{
 			"type": "vagrant",
-			"output": "archlinux-{{isotime \"20150101\"}}-x64-1.0.box"
+			"output": "archlinux-{{isotime \"200601\"}}-x64-1.0.box"
 		}
 	]
 }
