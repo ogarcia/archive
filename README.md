@@ -1,3 +1,7 @@
+# WARNING
+This repo is *DEPRECATED*. Only here for historical purposes.
+- - -
+
 MiniSub for Desktop - HTML5/Desktop Mini Player for Subsonic
 
 Imagine you can stream all your music from home, to any device, where ever you are. That is Subsonic! Now imagine having a Web App to stream your music that is as beautiful and well designed as it is functional, that is MiniSub! And imagine all in your desktop, that is MiniSub for Desktop
