@@ -1,4 +1,9 @@
 {
+  "variables": {
+    "isochecksum": null,
+    "isochecksumtype": null,
+    "isourl": null
+  },
 	"provisioners": [
 		{
 			"type": "shell",
@@ -27,9 +32,9 @@
 			"disk_size": 51200,
 			"guest_additions_mode": "disable",
 			"guest_os_type": "ArchLinux_64",
-			"iso_checksum": "ff79a9629a83dfedad6c3a58e2e7838c86282315",
-			"iso_checksum_type": "sha1",
-			"iso_url": "http://mirror.rackspace.com/archlinux/iso/2016.01.01/archlinux-2016.01.01-dual.iso",
+			"iso_checksum": "{{user `isochecksum`}}",
+			"iso_checksum_type": "{{user `isochecksumtype`}}",
+			"iso_url": "{{user `isourl`}}",
 			"ssh_username": "root",
 			"ssh_password": "toor",
 			"ssh_port": 22,
@@ -40,7 +45,7 @@
 	"post-processors": [
 		{
 			"type": "vagrant",
-			"output": "archlinux-{{isotime \"200601\"}}-x64-1.0.box"
+			"output": "archlinux-x64-{{isotime \"200601\"}}.box"
 		}
 	]
 }
