@@ -8,7 +8,7 @@
 all: x32 x64
 
 x32:
-	packer-io build -var-file config.json template_x64.json
+	packer-io build -var-file config.json template_x32.json
 
 x64:
 	packer-io build -var-file config.json template_x64.json

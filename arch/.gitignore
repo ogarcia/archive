@@ -1,0 +1,6 @@
+# Packer cache files
+packer_cache/
+
+# Generated images
+archlinux-x32-*.box
+archlinux-x64-*.box
