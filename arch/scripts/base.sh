@@ -40,7 +40,7 @@ useradd -m vagrant
 echo vagrant:vagrant | chpasswd
 usermod -a -G adm,disk,wheel,log vagrant
 sed -i 's/# %wheel ALL=(ALL) N/%wheel ALL=(ALL) N/g' /etc/sudoers
-pacman -S --noconfirm grub openssh virtualbox-guest-utils-nox
+pacman -S --noconfirm grub openssh virtualbox-guest-utils-nox virtualbox-guest-modules-arch
 echo vboxguest > /etc/modules-load.d/virtualbox.conf
 echo vboxsf >> /etc/modules-load.d/virtualbox.conf
 echo vboxvideo >> /etc/modules-load.d/virtualbox.conf
