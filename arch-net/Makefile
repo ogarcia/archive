@@ -1,16 +1,21 @@
 #
 # Makefile
-# Óscar García Amor, 2016
+# Óscar García Amor, 2017
 #
 
-.PHONY: all x32 x64
+.PHONY: all check-env x64_box x64_cloud
 
-all: x32 x64
+all: check-env x64_cloud
 
-x32:
-	packer-io build -var-file config.json template_x32.json
+check-env:
+ifndef VAGRANTCLOUD_TOKEN
+	$(error VAGRANTCLOUD_TOKEN is undefined)
+endif
 
-x64:
-	packer-io build -var-file config.json template_x64.json
+x64_box:
+	packer-io build -var-file config.json template_box_x64.json
+
+x64_cloud:
+	packer-io build -var-file config.json template_cloud_x64.json
 
 # vim:ft=make

@@ -1,4 +1,5 @@
-# Packer cache files
+# Packer cache and temp files
+output-virtualbox-iso/
 packer_cache/
 
 # Generated images

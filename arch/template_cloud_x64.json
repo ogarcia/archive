@@ -2,7 +2,10 @@
   "variables": {
     "isochecksum": null,
     "isochecksumtype": null,
-    "isourl": null
+    "isourl": null,
+    "boxtag": null,
+    "vagrantcloud_token": "{{env `VAGRANTCLOUD_TOKEN`}}",
+    "version": "{{isotime \"2006.01\"}}.01"
   },
 	"provisioners": [
 		{
@@ -31,7 +34,7 @@
 			"boot_wait": "10s",
 			"disk_size": 51200,
 			"guest_additions_mode": "disable",
-			"guest_os_type": "ArchLinux",
+			"guest_os_type": "ArchLinux_64",
 			"iso_checksum": "{{user `isochecksum`}}",
 			"iso_checksum_type": "{{user `isochecksumtype`}}",
 			"iso_url": "{{user `isourl`}}",
@@ -43,9 +46,18 @@
 		}
 	],
 	"post-processors": [
-		{
-			"type": "vagrant",
-			"output": "archlinux-x32-{{isotime \"200601\"}}.box"
-		}
+		[
+			{
+				"type": "vagrant",
+				"output": "archlinux-x64-{{isotime \"200601\"}}.box"
+			},
+			{
+				"type": "vagrant-cloud",
+				"access_token": "{{user `vagrantcloud_token`}}",
+				"box_tag": "{{user `boxtag`}}",
+				"version": "{{user `version`}}",
+				"version_description": "- base package\n- base devel package\n- grub\n- openssh\n- virtualbox-guest-utils-nox"
+			}
+		]
 	]
 }
