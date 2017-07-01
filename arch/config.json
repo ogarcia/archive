@@ -1,6 +1,6 @@
 {
-  "isochecksum": "77508eaf2be9f15e22b1cc920db12d4e90c2cf77",
+  "isochecksum": "dd03d811211c332d29155069d8e4bb2306c70f33",
   "isochecksumtype": "sha1",
-  "isourl": "http://mirror.rackspace.com/archlinux/iso/2017.06.01/archlinux-2017.06.01-x86_64.iso",
+  "isourl": "http://mirror.rackspace.com/archlinux/iso/2017.07.01/archlinux-2017.07.01-x86_64.iso",
   "boxtag": "ogarcia/archlinux-x64"
 }
