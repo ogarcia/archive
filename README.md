@@ -4,6 +4,10 @@ This repository contains the following projects.
 
 ## arch
 
+For Arch Linux images.
+
+### base
+
 Arch Linux base machine with following packages.
 
 - base package
@@ -12,7 +16,7 @@ Arch Linux base machine with following packages.
 - openssh
 - virtualbox-guest-utils-nox
 
-## arch-net
+### net
 
 Arch Linux base machine with several network packages.
 

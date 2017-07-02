@@ -1,23 +1,32 @@
-# Build archlinux vagrant base image for virtualbox
+# Build Arch Linux Vagrant images
 
-To build image and upload to vagrant cloud simply run:
+To build images and upload to Vagrant Cloud simply run:
 
-```bash
+```sh
 make
 ```
 
-If you only wants to build image run:
+To build only one image and upload run:
 
 ```sh
-make x64_box
+make base_cloud # To base image
+make net_cloud  # To net image
 ```
 
-You can build it at by hand with full command:
+If you only wants to build image but not upload it:
 
-```bash
-packer-io build -var-file config.json template_box_x64.json
+```sh
+make base_box # To base image
+make net_box  # To net image
 ```
 
-Note that inside of `config.json` there is a reference to Arch ISO URL, and
-box tag in vagrant cloud. You must adjust the URL to download latest ISO and
-checksum before run the build command.
+You can build images with full command too:
+
+```sh
+packer-io build -var-file config_base.json template_base_box_x64.json
+packer-io build -var-file config_net.json template_net_box_x64.json
+```
+
+Note that inside of `config_*.json` files there are a reference to Arch ISO
+URL, and box tag in vagrant cloud. You must adjust the URL to download
+latest ISO and checksum before run the build command.
