@@ -22,6 +22,10 @@ mkdir /mnt/boot
 mount /dev/sda1 /mnt/boot
 swapon /dev/sda2
 
+# Search for best mirror
+sed 's/^#Server/Server/' /etc/pacman.d/mirrorlist > /tmp/mirrorlist.backup
+rankmirrors -vn 6 /tmp/mirrorlist.backup > /etc/pacman.d/mirrorlist
+
 # Install base and base-devel arch linux stuff
 pacstrap /mnt base base-devel
 
