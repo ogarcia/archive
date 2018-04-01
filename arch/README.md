@@ -1,32 +1,39 @@
 # Build Arch Linux Vagrant images
 
-To build images and upload to Vagrant Cloud simply run:
+## To build to a box file
 
+To build image using `Makefile`.
+```sh
+make box_base_x32 # To base image 32 bit
+make box_base_x64 # To base image 64 bit
+make box_net_x64  # To net image 64 bit
+```
+
+You can build images with full command too.
+```sh
+packer-io build -var-file config_x32.json templates/boxes/base_x32.json
+packer-io build -var-file config_x64.json templates/boxes/base_x64.json
+packer-io build -var-file config_x64.json templates/boxes/net_x64.json
+```
+
+## To build and upload it to Vagrant Cloud
+
+First you must export environment variables `VAGRANTCLOUD_TOKEN` and `USER`.
+The first one is your Vagrant Cloud access token and the second one you
+username in Vagrant Cloud. Then simply run make command.
 ```sh
 make
 ```
 
-To build only one image and upload run:
-
+If you wish build only one image you can do the following.
 ```sh
-make base_cloud # To base image
-make net_cloud  # To net image
+make cloud_base_x32 # To base image 32 bit tagged as ${USER}/archlinux-x32
+make cloud_base_x64 # To base image 64 bit tagged as ${USER}/archlinux-x64
+make cloud_net_x64  # To net image 64 bit tagged as ${USER}/archlinux-net-x64
 ```
 
-If you only wants to build image but not upload it:
-
-```sh
-make base_box # To base image
-make net_box  # To net image
-```
-
-You can build images with full command too:
-
-```sh
-packer-io build -var-file config_base.json template_base_box_x64.json
-packer-io build -var-file config_net.json template_net_box_x64.json
-```
+## About config files
 
 Note that inside of `config_*.json` files there are a reference to Arch ISO
-URL, and box tag in vagrant cloud. You must adjust the URL to download
-latest ISO and checksum before run the build command.
+URL. You must adjust the URL to download latest ISO and checksum before run
+the build command.

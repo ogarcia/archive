@@ -3,7 +3,7 @@
     "isochecksum": null,
     "isochecksumtype": null,
     "isourl": null,
-    "boxtag": null,
+    "boxtag": "{{env `USER`}}/archlinux-x64",
     "vagrantcloud_token": "{{env `VAGRANTCLOUD_TOKEN`}}",
     "version": "{{isotime \"2006.01\"}}.01"
   },

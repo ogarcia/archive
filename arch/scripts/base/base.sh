@@ -23,8 +23,10 @@ mount /dev/sda1 /mnt/boot
 swapon /dev/sda2
 
 # Search for best mirror
+echo "Ranking mirrors (may take a while) . . ."
 sed 's/^#Server/Server/' /etc/pacman.d/mirrorlist > /tmp/mirrorlist.backup
 rankmirrors -vn 6 /tmp/mirrorlist.backup > /etc/pacman.d/mirrorlist
+echo "Ranking mirrors done!"
 
 # Install base and base-devel arch linux stuff
 pacstrap /mnt base base-devel
