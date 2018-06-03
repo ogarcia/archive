@@ -22,10 +22,10 @@ mkdir /mnt/boot
 mount /dev/sda1 /mnt/boot
 swapon /dev/sda2
 
-# Search for best mirror
+# Search for best mirrors
 echo "Ranking mirrors (may take a while) . . ."
-sed 's/^#Server/Server/' /etc/pacman.d/mirrorlist > /tmp/mirrorlist.backup
-rankmirrors -vn 6 /tmp/mirrorlist.backup > /etc/pacman.d/mirrorlist
+pacman -Sy --noconfirm reflector
+reflector --verbose --age 6 --latest 50 --number 10 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
 echo "Ranking mirrors done!"
 
 # Install base and base-devel arch linux stuff
