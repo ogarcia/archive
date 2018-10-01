@@ -11,9 +11,9 @@ make box_net_x64  # To net image 64 bit
 
 You can build images with full command too.
 ```sh
-packer-io build -var-file config_x32.json templates/boxes/base_x32.json
-packer-io build -var-file config_x64.json templates/boxes/base_x64.json
-packer-io build -var-file config_x64.json templates/boxes/net_x64.json
+packer build -var-file config_x32.json templates/boxes/base_x32.json
+packer build -var-file config_x64.json templates/boxes/base_x64.json
+packer build -var-file config_x64.json templates/boxes/net_x64.json
 ```
 
 ## To build and upload it to Vagrant Cloud
