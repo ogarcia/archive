@@ -44,9 +44,6 @@ sed -i 's/#en_US.UTF-8/en_US.UTF-8/g' /etc/locale.gen
 locale-gen
 echo LANG=en_US.UTF-8 > /etc/locale.conf
 echo KEYMAP=es > /etc/vconsole.conf
-useradd -m vagrant
-echo vagrant:vagrant | chpasswd
-usermod -a -G adm,disk,wheel,log vagrant
 sed -i 's/# %wheel ALL=(ALL) N/%wheel ALL=(ALL) N/g' /etc/sudoers
 pacman -S --noconfirm grub openssh virtualbox-guest-utils-nox virtualbox-guest-modules-arch
 echo vboxguest > /etc/modules-load.d/virtualbox.conf
@@ -60,6 +57,9 @@ cp /etc/netctl/examples/ethernet-dhcp /etc/netctl/enp0s3
 sed -i 's/Interface=eth0/Interface=enp0s3/g' /etc/netctl/enp0s3
 netctl enable enp0s3
 pacman -Scc --noconfirm
+useradd -m vagrant
+echo vagrant:vagrant | chpasswd
+usermod -a -G adm,disk,wheel,log,vboxsf vagrant
 exit
 EOF
 
