@@ -5,7 +5,7 @@
 
 .PHONY: all check-env box_base_x32 box_base_x64 box_net_x64 cloud_base_x32 cloud_base_x64 cloud_net_x64
 
-all: cloud_base_x32 cloud_base_x64
+all: cloud_base_x64 cloud_base_x32
 
 check-env:
 ifndef VAGRANTCLOUD_TOKEN
