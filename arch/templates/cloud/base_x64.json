@@ -21,7 +21,7 @@
     {
       "type": "virtualbox-iso",
       "boot_command": [
-        "<enter><wait10><wait10><wait10>",
+        "<enter><wait10><wait10><wait10><wait10>",
         "fdisk /dev/sda<enter>",
         "n<enter><enter><enter><enter>+512M<enter>",
         "n<enter><enter><enter><enter>+2G<enter>",
