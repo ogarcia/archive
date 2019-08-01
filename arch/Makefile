@@ -3,9 +3,13 @@
 # Óscar García Amor, 2017-2018
 #
 
-.PHONY: all check-env box_base_x32 box_base_x64 box_net_x64 cloud_base_x32 cloud_base_x64 cloud_net_x64
+.PHONY: all clean check-env box_base_x32 box_base_x64 box_net_x64 cloud_base_x32 cloud_base_x64 cloud_net_x64
 
 all: cloud_base_x64
+
+clean:
+	rm -f *.box
+	rm -rf packer_cache
 
 check-env:
 ifndef VAGRANTCLOUD_TOKEN
