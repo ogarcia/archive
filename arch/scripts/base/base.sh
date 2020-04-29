@@ -23,12 +23,12 @@ mount /dev/sda1 /mnt/boot
 swapon /dev/sda2
 
 # Search for best mirrors (only in x86_64)
-if [ $(uname -m) == 'x86_64' ]; then
-  echo "Ranking mirrors (may take a while) . . ."
-  pacman -Sy --noconfirm reflector
-  reflector --verbose --age 6 --score 50 --number 10 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
-  echo "Ranking mirrors done!"
-fi
+#if [ $(uname -m) == 'x86_64' ]; then
+#  echo "Ranking mirrors (may take a while) . . ."
+#  pacman -Sy --noconfirm reflector
+#  reflector --verbose --age 6 --score 50 --number 10 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
+#  echo "Ranking mirrors done!"
+#fi
 
 # Install base and base-devel arch linux stuff
 pacstrap /mnt base base-devel
