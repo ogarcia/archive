@@ -45,7 +45,7 @@ locale-gen
 echo LANG=en_US.UTF-8 > /etc/locale.conf
 echo KEYMAP=es > /etc/vconsole.conf
 sed -i 's/# %wheel ALL=(ALL) N/%wheel ALL=(ALL) N/g' /etc/sudoers
-pacman -S --noconfirm dhcpcd grub linux openssh netctl virtualbox-guest-utils-nox virtualbox-guest-modules-arch nfs-utils cifs-utils rsync net-tools
+pacman -S --noconfirm dhcpcd grub linux openssh netctl virtualbox-guest-utils-nox nfs-utils cifs-utils rsync net-tools
 echo vboxguest > /etc/modules-load.d/virtualbox.conf
 echo vboxsf >> /etc/modules-load.d/virtualbox.conf
 echo vboxvideo >> /etc/modules-load.d/virtualbox.conf
