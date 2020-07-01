@@ -45,11 +45,8 @@ locale-gen
 echo LANG=en_US.UTF-8 > /etc/locale.conf
 echo KEYMAP=es > /etc/vconsole.conf
 sed -i 's/# %wheel ALL=(ALL) N/%wheel ALL=(ALL) N/g' /etc/sudoers
-pacman -S --noconfirm dhcpcd grub linux openssh netctl virtualbox-guest-utils-nox
-echo vboxguest > /etc/modules-load.d/virtualbox.conf
-echo vboxsf >> /etc/modules-load.d/virtualbox.conf
-echo vboxvideo >> /etc/modules-load.d/virtualbox.conf
-systemctl enable sshd
+pacman -S --noconfirm dhcpcd grub linux openssh netctl virtualbox-guest-modules-arch virtualbox-guest-utils-nox
+systemctl enable sshd vboxservice
 grub-install --target=i386-pc --recheck --debug /dev/sda
 sed -i 's/GRUB_TIMEOUT=5/GRUB_TIMEOUT=1/g' /etc/default/grub
 grub-mkconfig -o /boot/grub/grub.cfg
