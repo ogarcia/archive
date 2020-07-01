@@ -1,7 +1,6 @@
 {
   "variables": {
     "isochecksum": null,
-    "isochecksumtype": null,
     "isourl": null,
     "boxtag": "{{env `USER`}}/archlinux-x32",
     "vagrantcloud_token": "{{env `VAGRANTCLOUD_TOKEN`}}",
@@ -36,7 +35,6 @@
       "guest_additions_mode": "disable",
       "guest_os_type": "ArchLinux",
       "iso_checksum": "{{user `isochecksum`}}",
-      "iso_checksum_type": "{{user `isochecksumtype`}}",
       "iso_url": "{{user `isourl`}}",
       "ssh_username": "root",
       "ssh_password": "toor",
