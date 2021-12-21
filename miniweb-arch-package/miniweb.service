@@ -1,0 +1,13 @@
+[Unit]
+Description = Mini control web for systemd daemons
+After = network.target
+
+[Service]
+User = http
+Group = http
+Type = simple
+Restart = always
+ExecStart = /usr/bin/miniweb
+
+[Install]
+WantedBy = multi-user.target

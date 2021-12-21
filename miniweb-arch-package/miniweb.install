@@ -1,0 +1,13 @@
+# Maintainer: Oscar Garcia Amor <ogarcia@connectical.com>
+
+post_install(){
+	echo "Note: You must check if sudoers.d directory is included in sudoers file "
+	echo "      to miniweb can start and stop services."
+	echo
+}
+
+# # arg 1: the new package version
+# # arg 2: the old package version
+post_upgrade() {
+	post_install $1
+}
