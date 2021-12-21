@@ -1,0 +1,137 @@
+#! /usr/bin/env python2
+# -*- coding: utf-8 -*-
+# vim:fenc=utf-8
+#
+# Copyright © 2015 Óscar García Amor <ogarcia@connectical.com>
+#
+# Distributed under terms of the MIT license.
+
+from bottle import abort, route, run, static_file, template, TEMPLATE_PATH
+from sys import exit
+import argparse
+import ConfigParser
+
+# Define a prefix for file locations, it must be / in package but in devel
+# time can be defined to . (current dir)
+prefix = "."
+
+# Define install location of templates and static files
+TEMPLATE_PATH.insert(0,prefix+'/usr/share/miniweb/views')
+static = prefix+'/usr/share/miniweb/static'
+config = prefix+'/etc/miniweb.conf'
+
+# Read config to object
+conf = ConfigParser.RawConfigParser()
+try:
+    conf.read(config)
+except ConfigParser.ParsingError as e:
+    print 'Error in config.'
+    print e
+    exit(1)
+
+# Define a function for check config
+def checkConfig():
+    # Read all sections to check if are correctly configurated
+    for section in conf.sections():
+        if not conf.has_option(section, 'title'):
+            conf.remove_section(section)
+            print 'Warning: Removed invalid section '+section+' from config.'
+        elif not conf.get(section,'title'):
+            conf.remove_section(section)
+            print 'Warning: Removed invalid section '+section+' from config.'
+        elif not conf.has_option(section, 'start') and not conf.has_option(section, 'stop'):
+            conf.remove_section(section)
+            print 'Warning: Removed invalid section '+section+' from config.'
+        elif conf.has_option(section,'start') and not conf.get(section,'start'):
+            conf.remove_section(section)
+            print 'Warning: Removed invalid section '+section+' from config.'
+        elif conf.has_option(section,'stop') and not conf.get(section,'stop'):
+            conf.remove_section(section)
+            print 'Warning: Removed invalid section '+section+' from config.'
+        # And Add color to sections
+        elif conf.has_option(section,'start'):
+            conf.set(section,'style','btn-success')
+        else:
+            conf.set(section,'style','btn-danger')
+
+    # If after check all sections no valid sections remain, exit with error
+    if len(conf.sections()) < 1:
+        print 'Error in config. No valid sections found.'
+        exit(1)
+
+# Define a function to start or stop services
+def systemctl(action, service):
+    from subprocess import PIPE, Popen
+    try:
+        pr = Popen(['sudo', 'systemctl', action, service], stdout=PIPE, stderr=PIPE)
+        pr_out = pr.stdout.read()
+        pr_err = pr.stderr.read()
+        pr.stdout.close()
+        pr.stderr.close()
+        return (pr_out, pr_err)
+    except OSError as e:
+        return ('', e+"\n")
+
+# Get index
+@route('/')
+def index():
+    from socket import gethostname
+    buttons = [[conf.get(section,'style'), section, conf.get(section,'title')] for section in conf.sections()]
+    return template('index', hostname=gethostname(), buttons=buttons)
+
+# Get all static content
+@route('/favicon.ico')
+def favicon():
+    return static_file('favicon.ico', root=static)
+
+@route('/css/<filename>')
+def css(filename):
+    return static_file(filename, root=static+'/css')
+
+# Do actions
+@route('/action/<action>')
+def action(action):
+    from socket import gethostname
+    if action in conf.sections():
+        # Make vars to store stop and start status
+        daemon_stop = []
+        daemon_start = []
+
+        if conf.has_option(action,'stop'):
+            for daemon in conf.get(action,'stop').split(' '):
+                # Do stop over daemons
+                daemon_stop.append(systemctl('stop', daemon))
+
+        if conf.has_option(action,'start'):
+             for daemon in conf.get(action,'start').split(' '):
+                # Do start over daemons
+                daemon_start.append(systemctl('start', daemon))
+
+        # Store errors into string
+        err = "".join([daemon_info[1] for daemon_info in daemon_stop])+"".join([daemon_info[1] for daemon_info in daemon_start])
+
+        if not err:
+            # Show sucess template
+            return template('action', status='success',
+                    title=conf.get(action,'title'), hostname=gethostname())
+        else:
+            # Show error template
+            return template('action', info=err,
+                    status='danger',title=conf.get(action,'title'), hostname=gethostname())
+    else:
+        abort(404, "¿A donde crees que vas pichón?")
+
+def main():
+    # Create an argument parser for change listen address and port
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-l', metavar='host or ip', default='0.0.0.0', help='listen address, default: 0.0.0.0')
+    parser.add_argument('-p', metavar='port', default='9292', help='listen port, default: 9292')
+    args = parser.parse_args()
+
+    checkConfig()
+
+    # Run server
+    run(host=args.l, port=args.p)
+
+if __name__ == "__main__":
+    main()
