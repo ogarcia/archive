@@ -24,10 +24,10 @@ swapon /dev/sda2
 
 # Search for best mirrors (only in x86_64)
 #if [ $(uname -m) == 'x86_64' ]; then
-#  echo "Ranking mirrors (may take a while) . . ."
+  echo "Ranking mirrors (may take a while) . . ."
 #  pacman -Sy --noconfirm reflector
-#  reflector --verbose --age 6 --score 50 --number 10 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
-#  echo "Ranking mirrors done!"
+  reflector --verbose --age 6 --score 50 --number 10 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
+  echo "Ranking mirrors done!"
 #fi
 
 # Install base and base-devel arch linux stuff
@@ -44,7 +44,7 @@ sed -i 's/#en_US.UTF-8/en_US.UTF-8/g' /etc/locale.gen
 locale-gen
 echo LANG=en_US.UTF-8 > /etc/locale.conf
 echo KEYMAP=es > /etc/vconsole.conf
-sed -i 's/# %wheel ALL=(ALL) N/%wheel ALL=(ALL) N/g' /etc/sudoers
+sed -i 's/# %wheel ALL=(ALL:ALL) N/%wheel ALL=(ALL:ALL) N/g' /etc/sudoers
 pacman -S --noconfirm dhcpcd grub linux openssh netctl virtualbox-guest-utils-nox
 systemctl enable sshd vboxservice
 grub-install --target=i386-pc --recheck --debug /dev/sda
