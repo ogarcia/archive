@@ -1,10 +1,18 @@
 #! /bin/sh
 #
 # base.sh
-# Copyright (C) 2015 Óscar García Amor <ogarcia@connectical.com>
+# Copyright (C) 2015-2023 Óscar García Amor <ogarcia@connectical.com>
 #
 # Distributed under terms of the MIT license.
 #
+
+# Updating pacman keyring (uncomment if ISO has signature problems)
+#sed -i '/\[options\]/a SigLevel = Never' /etc/pacman.conf
+#pacman -Sy --noconfirm archlinux-keyring
+#umount /etc/pacman.d/gnupg
+#pacman-key --init
+#pacman-key --populate
+#pacman -Sy --noconfirm archlinux-keyring
 
 # Create filesystems
 mkfs.ext4 /dev/sda1
@@ -22,13 +30,10 @@ mkdir /mnt/boot
 mount /dev/sda1 /mnt/boot
 swapon /dev/sda2
 
-# Search for best mirrors (only in x86_64)
-#if [ $(uname -m) == 'x86_64' ]; then
-  echo "Ranking mirrors (may take a while) . . ."
-#  pacman -Sy --noconfirm reflector
-  reflector --verbose --age 6 --score 50 --number 10 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
-  echo "Ranking mirrors done!"
-#fi
+# Search for best mirrors (uncomment if geomirror is failing)
+#echo "Ranking mirrors (may take a while) . . ."
+#reflector --verbose --age 6 --score 50 --number 10 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
+#echo "Ranking mirrors done!"
 
 # Install base and base-devel arch linux stuff
 pacstrap /mnt base base-devel
