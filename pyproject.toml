@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cerdito"
+version = "0.1.0"
+description = "Save a few cents on your cloud infrastructure."
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+keywords = [""]
+authors = [
+  {name = "Óscar García Amor", email = "ogarcia@connectical.com"}
+]
+classifiers = [
+  "Intended Audience :: System Administrators",
+  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+  "Natural Language :: English",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Topic :: System",
+  "Topic :: Utilities"
+]
+dependencies = [
+  "requests ~= 2.31",
+  "kubernetes ~= 29.0"
+]
+
+[project.scripts]
+cerdito = "cerdito.main:main"
