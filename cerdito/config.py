@@ -8,7 +8,11 @@ from . import NAME
 
 import logging
 import os
-import tomllib
+
+try:
+    import tomllib
+except (ImportError, ModuleNotFoundError):
+    import tomli as tomllib
 
 CONFIG_FILE_NAME = f'{NAME}.toml'
 LOCAL_CONFIG_FILE = os.path.join('.', CONFIG_FILE_NAME)
