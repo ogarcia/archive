@@ -53,7 +53,7 @@ options:
   -c value, --config value
                         custom configuration file path
   -k value, --kube-config value
-                        custom kube config file path)
+                        custom kube config file path
   -v, --verbose         be verbose (add more v to increase verbosity)
 ```
 

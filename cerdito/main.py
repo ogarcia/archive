@@ -36,7 +36,7 @@ def main():
     # Create argument parser to get config via arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--config', metavar='value', default=config_file, help='custom configuration file path')
-    parser.add_argument('-k', '--kube-config', metavar='value', default=kubernetes_kubeconfig, help='custom kube config file path)')
+    parser.add_argument('-k', '--kube-config', metavar='value', default=kubernetes_kubeconfig, help='custom kube config file path')
     parser.add_argument('-v', '--verbose', action='count', default=0, help='be verbose (add more v to increase verbosity)')
     subparsers = parser.add_subparsers(required=True)
     parser_start = subparsers.add_parser('start', help='start all configured elements')
