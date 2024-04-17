@@ -15,5 +15,5 @@ def start():
     kubernetes_pause(False)
 
 def stop():
-    atlas_pause(True)
     kubernetes_pause(True)
+    atlas_pause(True)
