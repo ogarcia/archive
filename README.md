@@ -1,3 +1,8 @@
+# WARNING
+This repo is **DEPRECATED**. It is here for historical purposes only.
+See [cerdito](https://github.com/Telefonica/cerdito) for the active project.
+- - -
+
 # cerdito
 
 ![Piggy Bank](piggy.svg)
